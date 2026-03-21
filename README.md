@@ -17,6 +17,10 @@
 
 </div>
 
+## ✨ Screenshot
+
+![Screenshot](screenshot.png)
+
 ---
 
 ## 🎨 What is Bangen?
