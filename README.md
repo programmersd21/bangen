@@ -23,9 +23,15 @@
 
 ---
 
+## ⌛ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=pro-grammer-sd/bangen&type=Date)](https://star-history.com/#pro-grammer-sd/bangen&Date)
+
+---
+
 ## ▶️ Demonstration
 
-👆 Click the picture to watch the demo (redirects to YouTube)
+👆 Click the picture below to watch the demo (redirects to YouTube)
 
 <p align="center">
   <a href="https://youtu.be/QaXEEHgKrUg">
