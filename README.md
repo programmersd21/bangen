@@ -118,7 +118,7 @@ Bangen will walk you through everything interactively — text, font, color, ani
 ```
 bangen/
 ├── 🐍 bangen.py          # Main application
-├── 📦 pyproject.toml      # Packaging + dependencies
+├── 📦 pyproject.toml     # Packaging + dependencies
 ├── 📄 LICENSE            # MIT license
 ├── 🙈 .gitignore         # Python defaults
 ├── 💁‍♂️ README.md          # Project information
