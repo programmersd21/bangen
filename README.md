@@ -11,8 +11,8 @@
 
 **Terminal ASCII banner generator — because plain text is boring.**
 
-[![License](https://img.shields.io/github/license/pro-grammer-SD/bangen?style=for-the-badge&color=cyan)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/pro-grammer-SD/bangen?style=for-the-badge&color=yellow)](https://github.com/pro-grammer-SD/bangen/stargazers)
+[![License](https://img.shields.io/github/license/programmersd/bangen?style=for-the-badge&color=cyan)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/programmersd/bangen?style=for-the-badge&color=yellow)](https://github.com/programmersd/bangen/stargazers)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 
 </div>
@@ -72,7 +72,7 @@ No config files. No setup ceremony. Just run and render.
 
 ```bash
 # Clone the repo
-git clone https://github.com/pro-grammer-SD/bangen.git
+git clone https://github.com/programmersd/bangen.git
 cd bangen
 
 # Set up a virtual environment
@@ -146,5 +146,5 @@ MIT — do whatever you want with it. See [`LICENSE`](LICENSE) for the legal bit
 ---
 
 <div align="center">
-Made with 🖤 and too much terminal time · <a href="https://github.com/pro-grammer-SD">pro-grammer-SD</a>
+Made with 🖤 and too much terminal time · <a href="https://github.com/programmersd">programmersd</a>
 </div>

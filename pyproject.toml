@@ -9,7 +9,7 @@ description = "Terminal ASCII banner generator with rich panels and optional ani
 readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
-authors = [{ name = "pro-grammer-SD" }]
+authors = [{ name = "programmersd" }]
 keywords = ["ascii", "banner", "terminal", "pyfiglet", "rich"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -31,9 +31,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/pro-grammer-SD/bangen"
-Repository = "https://github.com/pro-grammer-SD/bangen"
-Issues = "https://github.com/pro-grammer-SD/bangen/issues"
+Homepage = "https://github.com/programmersd/bangen"
+Repository = "https://github.com/programmersd/bangen"
+Issues = "https://github.com/programmersd/bangen/issues"
 
 [project.scripts]
 bangen = "bangen:main"
