@@ -25,7 +25,7 @@
 
 ## ⌛ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=pro-grammer-sd/bangen&type=Date)](https://star-history.com/#pro-grammer-sd/bangen&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=programmersd21/bangen&type=Date)](https://star-history.com/#pro-grammer-sd/bangen&Date)
 
 ---
 
