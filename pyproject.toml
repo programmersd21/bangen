@@ -32,16 +32,10 @@ images = ["Pillow>=10.0"]
 all = ["Pillow>=10.0"]
 
 [project.urls]
-<<<<<<< HEAD
 Homepage   = "https://github.com/programmersd21/bangen"
 Repository = "https://github.com/programmersd21/bangen"
 Issues     = "https://github.com/programmersd21/bangen/issues"
 Changelog  = "https://github.com/programmersd21/bangen/blob/main/CHANGELOG.md"
-=======
-Homepage = "https://github.com/programmersd21/bangen"
-Repository = "https://github.com/programmersd21/bangen"
-Issues = "https://github.com/programmersd21/bangen/issues"
->>>>>>> 9e925b1560bd98a8307c185de4230b97007f306d
 
 [project.scripts]
 bangen = "bangen.app:main"
