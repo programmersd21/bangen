@@ -21,31 +21,56 @@
 
 ---
 
-## What's New in v2.0
+## ⌛ Star History
 
-Bangen has been completely rewritten from a single-file script into a modular,
-Premium ASCII rendering engine.
+[![Star History Chart](https://api.star-history.com/svg?repos=pro-grammer-sd/bangen&type=Date)](https://star-history.com/#pro-grammer-sd/bangen&Date)
 
-| Feature | v1 | v2 |
-|---|---|---|
-| Architecture | Single file | Modular packages |
-| Colours | 5 named colours | True-colour RGB gradients |
-| Multi-stop gradients | ✗ | ✓ |
-| Effect pipeline | Line-by-line reveal | Wave · Glitch · Pulse · Typewriter · Scroll |
-| Interactive TUI | Prompt-based | Keyboard-driven split layout |
-| CLI | ✗ | Full `argparse` CLI |
-| Preset system | ✗ | JSON presets in `~/.bangen/presets/` |
-| Export | TXT only | TXT · HTML · PNG · GIF |
-| Custom fonts | ✗ | `.flf` font directory scanning |
-| AI styling | ✗ | Rule-based prompt-to-banner |
-| Python | 3.9+ | 3.11+ |
+---
+
+## ▶️ Demonstration
+
+👆 Click the picture below to watch the demo (redirects to YouTube)
+
+<p align="center">
+  <a href="https://youtu.be/QaXEEHgKrUg">
+    <img src="https://img.youtube.com/vi/QaXEEHgKrUg/0.jpg" alt="Demo video" width="720">
+  </a>
+</p>
+
+---
+
+## 🎨 What is Bangen?
+
+**Bangen** is a colorful, animated terminal banner generator built on [`pyfiglet`](https://github.com/pwaller/pyfiglet) and [`rich`](https://github.com/Textualize/rich). Type a word, pick a font and a color, and watch your terminal come alive with big bold ASCII art — optionally animated, optionally saved.
+
+No config files. No setup ceremony. Just run and render.
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---|---|
+| 🖋️ **Multiple Fonts** | Choose from a curated preset list or type any `pyfiglet` font name |
+| 🌈 **Five Colors** | `cyan` · `red` · `green` · `yellow` · `magenta` |
+| 📦 **Panel Display** | Clean bordered panel with optional title via `rich` |
+| 🎞️ **Line Animation** | Optional line-by-line reveal for dramatic effect |
+| 💾 **Save to File** | Export your banner to a `.txt` file instantly |
+| 💬 **Interactive Prompts** | Clear, guided terminal UI — no arguments needed |
+
+---
+
+## 🛠️ Requirements
+
+- 🐍 Python **3.9+**
 
 ---
 
 ## Installation
 
 ```bash
-git clone https://github.com/programmersd21/bangen.git
+# Clone the repo
+git clone https://github.com/pro-grammer-SD/bangen.git
 cd bangen
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
@@ -117,57 +142,13 @@ bangen "DEPLOY" --no-border --static | cat
 
 ```
 bangen/
-├── main.py                    # Entry point
-├── pyproject.toml
-├── bangen/
-│   ├── rendering/
-│   │   ├── engine.py          # RenderEngine — pyfiglet wrapper + font discovery
-│   │   └── banner.py          # Banner — composable effect pipeline
-│   ├── gradients/
-│   │   └── gradient.py        # Gradient — multi-stop RGB interpolation
-│   ├── effects/
-│   │   ├── base.py            # Effect, EffectConfig, BrightnessModifier
-│   │   ├── wave.py            # Sin-based horizontal offset
-│   │   ├── glitch.py          # Stochastic character substitution
-│   │   ├── pulse.py           # Brightness oscillation
-│   │   ├── typewriter.py      # Char-by-char reveal
-│   │   └── scroll.py          # Horizontal banner scroll
-│   ├── tui/
-│   │   └── app.py             # TUIApp — rich.Live split-panel UI
-│   ├── cli/
-│   │   ├── parser.py          # argparse definitions
-│   │   └── runner.py          # CLI command handler
-│   ├── export/
-│   │   └── exporter.py        # TXT · HTML · PNG · GIF
-│   ├── presets/
-│   │   └── manager.py         # Built-in + user JSON presets
-│   └── ai/
-│       └── suggester.py       # Prompt-to-style rule engine
-```
-
----
-
-## Built-in Presets
-
-| Preset | Font | Gradient | Effects |
-|---|---|---|---|
-| `neon_wave` | ansi_shadow | magenta→cyan | wave, pulse |
-| `cyberpunk` | slant | pink→yellow→green | glitch |
-| `matrix` | banner3-D | dark→bright green | typewriter |
-| `retro` | doom | orange→yellow | — |
-| `ocean` | speed | navy→blue→cyan | wave |
-| `vaporwave` | small | pink→purple→blue | scroll, pulse |
-| `electric` | ansi_shadow | blue→cyan→white | glitch, pulse |
-| `fire` | block | red→orange→yellow | wave, glitch |
-
----
-
-## Custom Fonts
-
-Place any `.flf` FIGlet font file in a directory and pass it with `--font-dir`:
-
-```bash
-bangen "HELLO" --font-dir ~/my-fonts --font myfont
+├── 🐍 bangen.py          # Main application
+├── 📦 pyproject.toml      # Packaging + dependencies
+├── 📄 LICENSE            # MIT license
+├── 🙈 .gitignore         # Python defaults
+├── 💁‍♂️ README.md          # Project information
+├── 🌟 demo.mp4           # A demonstration of the app
+└── 📸 screenshot.png     # A screenshot of the app
 ```
 
 ---
