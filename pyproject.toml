@@ -4,39 +4,45 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bangen"
-version = "0.1.0"
-description = "Terminal ASCII banner generator with rich panels and optional animation."
+version = "2.0.0"
+description = "Premium ASCII banner rendering engine with gradients, effects, live TUI, and multi-format export."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
-authors = [{ name = "pro-grammer-SD" }]
-keywords = ["ascii", "banner", "terminal", "pyfiglet", "rich"]
+authors = [{ name = "programmersd21" }]
+keywords = ["ascii", "banner", "terminal", "pyfiglet", "rich", "gradient", "tui"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Environment :: Console",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
-  "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Utilities",
+  "Topic :: Terminals",
 ]
 dependencies = [
-  "pyfiglet",
-  "rich",
+  "pyfiglet>=1.0",
+  "rich>=13.0",
 ]
 
+[project.optional-dependencies]
+images = ["Pillow>=10.0"]
+all = ["Pillow>=10.0"]
+
 [project.urls]
-Homepage = "https://github.com/pro-grammer-SD/bangen"
-Repository = "https://github.com/pro-grammer-SD/bangen"
-Issues = "https://github.com/pro-grammer-SD/bangen/issues"
+Homepage   = "https://github.com/programmersd21/bangen"
+Repository = "https://github.com/programmersd21/bangen"
+Issues     = "https://github.com/programmersd21/bangen/issues"
+Changelog  = "https://github.com/programmersd21/bangen/blob/main/CHANGELOG.md"
 
 [project.scripts]
-bangen = "bangen:main"
+bangen = "bangen.app:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bangen*"]
 
 [tool.setuptools]
-py-modules = ["bangen"]
+py-modules = ["main"]

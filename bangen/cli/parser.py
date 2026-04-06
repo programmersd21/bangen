@@ -1,0 +1,74 @@
+"""argparse CLI definition."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="bangen",
+        description="Bangen v2 — ASCII banner rendering engine",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  bangen "HELLO"
+  bangen "HELLO" --font slant --gradient "#ff00ff:#00ffff"
+  bangen "HELLO" --effect wave --effect pulse --speed 1.5
+  bangen --preset neon_wave "HELLO"
+  bangen "HELLO" --ai "cyberpunk neon hacker vibe"
+  bangen "HELLO" --export-png banner.png --export-gif banner.gif
+  bangen --list-presets
+  bangen --list-fonts
+""",
+    )
+    p.add_argument("text", nargs="?", help="Text to render")
+    p.add_argument("--font", "-f", default=None)
+    p.add_argument(
+        "--gradient",
+        "-g",
+        default=None,
+        help="Colon-separated hex stops: '#ff00ff:#00ffff'",
+    )
+    p.add_argument(
+        "--gradient-dir", choices=["horizontal", "vertical"], default="horizontal"
+    )
+    p.add_argument(
+        "--effect",
+        "-e",
+        action="append",
+        dest="effects",
+        default=None,
+        help="Effect name (repeatable): wave|glitch|pulse|typewriter|scroll",
+    )
+    p.add_argument("--speed", type=float, default=1.0)
+    p.add_argument("--amplitude", type=float, default=1.0)
+    p.add_argument("--frequency", type=float, default=1.0)
+    p.add_argument("--preset", "-p", default=None)
+    p.add_argument("--list-presets", action="store_true")
+    p.add_argument("--list-fonts", action="store_true")
+    p.add_argument("--export-txt", metavar="PATH")
+    p.add_argument("--export-html", metavar="PATH")
+    p.add_argument("--export-png", metavar="PATH")
+    p.add_argument("--export-gif", metavar="PATH")
+    p.add_argument("--gif-duration", type=float, default=3.0)
+    p.add_argument("--gif-fps", type=float, default=15.0)
+    p.add_argument("--animate", action="store_true")
+    p.add_argument("--animate-duration", type=float, default=5.0)
+    p.add_argument("--ai", metavar="PROMPT")
+    p.add_argument("--save-preset", metavar="NAME")
+    p.add_argument("--font-dir", metavar="DIR")
+    p.add_argument("--no-border", action="store_true")
+    p.add_argument("--title", default=None)
+    p.add_argument("--static", action="store_true")
+    return p
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    return build_parser().parse_args(argv)
+
+
+def has_cli_args(argv: list[str] | None = None) -> bool:
+    args = argv if argv is not None else sys.argv[1:]
+    return len(args) > 0
