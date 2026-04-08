@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.2.0]
+
+### Added
+- `--screensaver` full-screen terminal mode with auto-fitted banner sizing, randomized scene rotation, effect mixing, and optional seed/duration controls
+- Screensaver font rotation across multiple safe fitted fonts per scene
+- Expanded README documentation for screensaver mode and refreshed presentation details
+
+### Changed
+- Refined the README structure and GitHub presentation, including more deliberate visual emphasis
+
+### Fixed
+- Screensaver scene generation now skips invalid randomized effect kwargs instead of breaking playback
+- Screensaver fitting now reserves extra margin for motion/distortion-heavy scenes so text stays on-screen
+- Screensaver font selection is randomized across safe fits instead of collapsing into one repeated choice
+
+## [2.1.0]
+
+### Added
+- `--preset-file` support in the CLI for loading a preset JSON from any path without saving it
+- TUI preset loader modal with support for loading saved presets or an arbitrary preset file
+- Expanded README documentation for preset authoring, preset loading, and current CLI/TUI workflows
+
+### Changed
+- Reworked the active effect library for more stable, bounded, export-safe motion, distortion, visual, and signature rendering
+- Improved GIF and PNG raster rendering with better font metrics, larger raster sizing, and shared GIF palette generation across sampled frames
+- Refined `flicker` and `glitch` behavior to reduce export fuzziness and palette churn
+
+### Fixed
+- `wipe` now reveals visible content bounds instead of wasting progress on indentation
+- Preset-derived `gradient_direction` is preserved unless explicitly overridden on the CLI
+- Windows console export status output now uses ASCII arrows to avoid `cp1252` encoding crashes
+
 ## [2.0.0]
 
 ### Added

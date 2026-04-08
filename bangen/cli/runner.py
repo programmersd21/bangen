@@ -13,6 +13,7 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 
+from bangen.cli.screensaver import run_screensaver
 from bangen.effects import AVAILABLE_EFFECTS, EFFECT_TIERS, EffectConfig, build_effect
 from bangen.export.exporter import Exporter
 from bangen.gradients.gradient import Gradient
@@ -84,6 +85,23 @@ def run_cli(args: argparse.Namespace) -> None:
         gradient_dir = args.gradient_dir or "horizontal"
         effects_list = args.effects or []
         effect_cfg_map = {}
+
+    if args.screensaver:
+        if any((args.export_txt, args.export_html, args.export_png, args.export_gif)):
+            console.print(
+                "[yellow]Warning:[/yellow] export flags are ignored in screensaver mode."
+            )
+        run_screensaver(
+            console,
+            engine,
+            text=text,
+            preferred_font=font,
+            preferred_gradient=gradient_str,
+            preferred_gradient_direction=gradient_dir,
+            seed=args.screensaver_seed,
+            duration=args.screensaver_duration or None,
+        )
+        return
 
     # ---- render -------------------------------------------------------
     banner = engine.render(text, font)

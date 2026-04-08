@@ -61,6 +61,12 @@ Render with effects:
 bangen "HELLO" --effect wave --effect glow --effect pulse --speed 1.5 --amplitude 2.0
 ```
 
+Run screensaver mode:
+
+```bash
+bangen "HELLO" --screensaver
+```
+
 Export a GIF:
 
 ```bash
@@ -134,6 +140,23 @@ bangen "HELLO" --export-png banner.png
 bangen "HELLO" --effect wave --effect glow --export-gif banner.gif --gif-duration 3 --gif-fps 20
 bangen "HELLO" --export-html banner.html
 ```
+
+#### Screensaver
+
+Turns any banner text into a full-terminal animated screensaver. It auto-fits the text to the current terminal size, switches between effect scenes, and randomizes speed, amplitude, frequency, and scene duration.
+
+```bash
+bangen "SYSTEM READY" --screensaver
+bangen "NIGHT MODE" --screensaver --screensaver-duration 60
+bangen "SIGNAL" --screensaver --screensaver-seed 42
+```
+
+Notes:
+
+- `Ctrl+C` exits screensaver mode
+- `--font`, `--gradient`, presets, and AI prompts still influence the starting style
+- effect selection is managed by the screensaver engine, so `--effect` is not the main control surface in this mode
+- export flags are ignored while screensaver mode is running
 
 #### Terminal Animation
 
@@ -294,6 +317,7 @@ bangen/
 
 - Animated exports look best when you keep effect stacks readable instead of maxing out distortion-heavy combinations.
 - Temporal effects such as `wipe` and `typewriter` are best previewed with `--animate` in the terminal before exporting.
+- `--screensaver` is designed for live terminal playback, not export generation.
 
 ## License 📄
 

@@ -16,6 +16,7 @@ Examples:
   bangen "HELLO"
   bangen "HELLO" --font slant --gradient "#ff00ff:#00ffff"
   bangen "HELLO" --effect wave --effect chromatic_aberration --effect pulse --speed 1.5
+  bangen "HELLO" --screensaver
   bangen --preset neon_wave "HELLO"
   bangen --preset-file ./preset.json "HELLO"
   bangen "HELLO" --ai "cyberpunk neon hacker vibe"
@@ -68,6 +69,23 @@ Examples:
     p.add_argument("--gif-fps", type=float, default=15.0)
     p.add_argument("--animate", action="store_true")
     p.add_argument("--animate-duration", type=float, default=5.0)
+    p.add_argument(
+        "--screensaver",
+        action="store_true",
+        help="Run full-screen screensaver mode with auto-fitted text and rotating randomized effect scenes.",
+    )
+    p.add_argument(
+        "--screensaver-duration",
+        type=float,
+        default=0.0,
+        help="Optional total screensaver runtime in seconds. Defaults to 0 for infinite until Ctrl+C.",
+    )
+    p.add_argument(
+        "--screensaver-seed",
+        type=int,
+        default=None,
+        help="Seed screensaver randomization for reproducible effect rotations.",
+    )
     p.add_argument("--ai", metavar="PROMPT")
     p.add_argument("--save-preset", metavar="NAME")
     p.add_argument("--font-dir", metavar="DIR")
