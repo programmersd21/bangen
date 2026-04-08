@@ -32,6 +32,7 @@ env/
 banner.gif
 banner.png
 banner.txt
+banner.html
 
 .pytest_cache/
 .mypy_cache/
