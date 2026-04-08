@@ -1,4 +1,4 @@
-<div align="center">
+# Bangen
 
 ```text
 ██████╗  █████╗ ███╗   ██╗ ██████╗ ███████╗███╗   ██╗
@@ -11,176 +11,208 @@
 
 ![Screenshot](demo/screenshot.png)
 
-**v2.0 — Premium ASCII rendering engine.**
+**v2.2.0**
 
-[![License](https://img.shields.io/github/license/programmersd21/bangen?style=for-the-badge&color=cyan)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue?style=for-the-badge&logo=python)](https://python.org)
-[![Version](https://img.shields.io/badge/version-2.0.0-magenta?style=for-the-badge)](CHANGELOG.md)
+Bangen is a modular ASCII rendering engine built on `pyfiglet`, `rich`, and Pillow. It ships with a pipeline-first effect system, live terminal preview, transparent PNG/GIF export, and a tiered library of motion, visual, temporal, distortion, and signature effects.
 
-</div>
+## Features
 
----
-
-## ⌛ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=pro-grammer-sd/bangen&type=Date)](https://star-history.com/#pro-grammer-sd/bangen&Date)
-
----
-
-## ▶️ Demonstration
-
-👆 Click the picture below to watch the demo (redirects to YouTube)
-
-<p align="center">
-  <a href="https://youtu.be/QaXEEHgKrUg">
-    <img src="https://img.youtube.com/vi/QaXEEHgKrUg/0.jpg" alt="Demo video" width="720">
-  </a>
-</p>
-
----
-
-## 🎨 What is Bangen?
-
-**Bangen** is a colorful, animated terminal banner generator built on [`pyfiglet`](https://github.com/pwaller/pyfiglet) and [`rich`](https://github.com/Textualize/rich). Type a word, pick a font and a color, and watch your terminal come alive with big bold ASCII art — optionally animated, optionally saved.
-
-No config files. No setup ceremony. Just run and render.
-
----
-
-## ✨ Features
-
-| Feature | Description |
-|---|---|
-| 🖋️ **Multiple Fonts** | Choose from a curated preset list or type any `pyfiglet` font name |
-| 🌈 **Five Colors** | `cyan` · `red` · `green` · `yellow` · `magenta` |
-| 📦 **Panel Display** | Clean bordered panel with optional title via `rich` |
-| 🎞️ **Line Animation** | Optional line-by-line reveal for dramatic effect |
-| 💾 **Save to File** | Export your banner to a `.txt` file instantly |
-| 💬 **Interactive Prompts** | Clear, guided terminal UI — no arguments needed |
-
----
-
-## 🛠️ Requirements
-
-- 🐍 Python **3.9+**
-
----
+- Live split-screen TUI with modal export workflow
+- Transparent `PNG` and animated transparent `GIF` export
+- Plain `TXT` export with exact static ASCII
+- 30-effect library designed for composition order
+- Multi-stop gradients with horizontal and vertical interpolation
+- Built-in presets for cyberpunk, matrix, neon, retro, fire, VHS, and electric styles
+- CLI render/export flow plus `--list-effects`, `--list-fonts`, and `--list-presets`
 
 ## Installation
 
 ```bash
-# Clone the repo
 git clone https://github.com/pro-grammer-SD/bangen.git
 cd bangen
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -e .
-# With image export support:
-pip install -e ".[images]"
 ```
 
----
+Requirements:
 
-## Usage
+- Python `3.11+`
+- `Pillow` is included in the base install
 
-### Interactive TUI (no arguments)
+## TUI
+
+Launch the editor:
 
 ```bash
 bangen
 ```
 
-Launches a full-screen split-panel TUI:
+Controls:
 
-- **Left panel** — controls: text, font, gradient, effects, speed, amplitude
-- **Right panel** — live animated preview
-- `↑↓` navigate · `←→` adjust · `Enter` edit/toggle · `s` save preset · `q` quit
+- `↑↓` navigate fields and effects
+- `←→` adjust font or numeric settings
+- `Enter` edit/toggle the selected field
+- `e` open the export dialog
+- `s` save the current preset
+- `q` quit
 
-### CLI Mode
+The effect selector is windowed, so you can move through the whole library without overflowing the controls panel.
+
+### Export Dialog
+
+Press `e` inside the TUI to open the modal exporter.
+
+- Toggle `GIF`, `PNG`, and `TXT`
+- Edit the output path directly
+- GIF-only `duration` and `fps` controls
+- Auto-updating file extension when the format changes
+- Overwrite confirmation for existing files
+- Transparent raster output for both `PNG` and `GIF`
+- GIF frame cap at `300`
+
+## CLI
+
+Basic rendering:
 
 ```bash
-# Basic render
 bangen "HELLO"
-
-# Custom font and gradient
 bangen "HELLO" --font slant --gradient "#ff00ff:#00ffff"
-
-# Multi-stop gradient (vertical)
 bangen "HELLO" --gradient "#ff0000:#ffff00:#00ff00" --gradient-dir vertical
+bangen "HELLO" --effect wave --effect chromatic_aberration --effect pulse --speed 1.5 --amplitude 2.0
+```
 
-# Apply effects
-bangen "HELLO" --effect wave --effect pulse --speed 1.5 --amplitude 2.0
+Discovery:
 
-# Use a built-in preset
-bangen --preset neon_wave "HELLO"
-bangen --preset cyberpunk "HACK THE PLANET"
-bangen --preset matrix "LOADING"
-
-# AI-driven styling
-bangen "HELLO" --ai "cyberpunk neon hacker vibe"
-bangen "HELLO" --ai "retro arcade 80s pixel"
-
-# Animated terminal output
-bangen "HELLO" --effect wave --animate --animate-duration 8
-
-# Export
-bangen "HELLO" --export-txt banner.txt
-bangen "HELLO" --export-html banner.html --gradient "#ff00ff:#00ffff"
-bangen "HELLO" --export-png banner.png --gradient "#ff0000:#ff8800:#ffff00"
-bangen "HELLO" --effect pulse --export-gif banner.gif --gif-duration 3 --gif-fps 20
-
-# Save / list presets
-bangen "HELLO" --font doom --gradient "#ff6600:#ffcc00" --save-preset my_retro
-bangen --list-presets
+```bash
+bangen --list-effects
 bangen --list-fonts
-
-# Pipeline-friendly (no border)
-bangen "DEPLOY" --no-border --static | cat
+bangen --list-presets
 ```
 
----
+Preset and AI flows:
 
-## Architecture
-
-```
-bangen/
-├── 🐍 bangen.py          # Main application
-├── 📦 pyproject.toml      # Packaging + dependencies
-├── 📄 LICENSE            # MIT license
-├── 🙈 .gitignore         # Python defaults
-├── 💁‍♂️ README.md          # Project information
-├── 🌟 demo.mp4           # A demonstration of the app
-└── 📸 screenshot.png     # A screenshot of the app
+```bash
+bangen --preset cyberpunk "HELLO"
+bangen --preset matrix "SYSTEM"
+bangen "HELLO" --ai "retro CRT hacker title"
 ```
 
----
+Export:
+
+```bash
+bangen "HELLO" --export-txt banner.txt
+bangen "HELLO" --export-png banner.png
+bangen "HELLO" --effect wave --effect glow --effect pulse --export-gif banner.gif --gif-duration 3 --gif-fps 20
+```
+
+Legacy HTML export remains available:
+
+```bash
+bangen "HELLO" --export-html banner.html
+```
+
+## Effect Library
+
+### Motion
+
+- `wave`
+- `vertical_wave`
+- `bounce`
+- `scroll`
+- `drift`
+- `shake`
+
+### Visual
+
+- `gradient_shift`
+- `pulse`
+- `rainbow_cycle`
+- `glow`
+- `flicker`
+- `scanline`
+
+### Temporal
+
+- `typewriter`
+- `fade_in`
+- `wipe`
+- `stagger`
+- `loop_pulse`
+
+### Distortion
+
+- `glitch`
+- `chromatic_aberration`
+- `noise_injection`
+- `melt`
+- `warp`
+- `fragment`
+
+### Signature
+
+- `matrix_rain`
+- `fire`
+- `electric`
+- `vhs_glitch`
+- `neon_sign`
+- `wave_interference`
+- `particle_disintegration`
+
+## Composition
+
+Effects are order-sensitive and chainable:
+
+```python
+banner.apply(build_effect("wave", config=cfg))
+banner.apply(build_effect("chromatic_aberration", config=cfg))
+banner.apply(build_effect("pulse", config=cfg))
+```
+
+Recommended style stacks:
+
+- `cyberpunk`: `glitch` + `chromatic_aberration` + `pulse`
+- `neon`: `glow` + `pulse` or `neon_sign`
+- `matrix`: `matrix_rain` + `typewriter`
+- `retro`: `scanline` + `flicker`
+- `fire`: `fire` + `melt`
+- `electric`: `electric` + `glow`
 
 ## Gradient Format
 
-Gradients are colon-separated hex colour stops:
+Use colon-separated hex stops:
 
+```text
+#ff00ff:#00ffff
+#ff0000:#ffff00:#00ff00
 ```
-"#ff0000:#ffff00:#00ff00"   # red → yellow → green (3 stops)
-"#ff00ff:#00ffff"           # magenta → cyan (2 stops)
+
+Use `--gradient-dir vertical` for top-to-bottom interpolation.
+
+## Architecture
+
+```text
+bangen/
+├── effects/
+│   ├── base.py
+│   ├── distortion.py
+│   ├── motion.py
+│   ├── signature.py
+│   ├── temporal.py
+│   ├── utils.py
+│   └── visual.py
+├── export/
+│   ├── exporter.py
+│   ├── gif.py
+│   ├── png.py
+│   └── txt.py
+├── gradients/
+├── rendering/
+└── tui/
+    ├── app.py
+    └── export_dialog.py
 ```
-
-Horizontal (default) varies colour left-to-right per line.  
-Vertical (`--gradient-dir vertical`) varies colour top-to-bottom.
-
----
-
-## Requirements
-
-- Python **3.11+**
-- `pyfiglet`, `rich`
-- `Pillow` (optional — PNG/GIF export only)
-
----
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
----
-
-<div align="center">
-Made with 🖤 and too much terminal time · <a href="https://github.com/programmersd21">programmersd21</a>
-</div>
+MIT. See [LICENSE](LICENSE).

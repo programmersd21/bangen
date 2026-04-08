@@ -13,7 +13,7 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 
-from bangen.effects import EffectConfig, build_effect
+from bangen.effects import AVAILABLE_EFFECTS, EFFECT_TIERS, EffectConfig, build_effect
 from bangen.export.exporter import Exporter
 from bangen.gradients.gradient import Gradient
 from bangen.presets.manager import Preset, PresetManager
@@ -35,6 +35,10 @@ def run_cli(args: argparse.Namespace) -> None:
 
     if args.list_fonts:
         _list_fonts(console, engine)
+        return
+
+    if args.list_effects:
+        _list_effects(console)
         return
 
     # ---- resolve text -------------------------------------------------
@@ -93,13 +97,11 @@ def run_cli(args: argparse.Namespace) -> None:
             amplitude=ecfg_data.get("amplitude", args.amplitude),
             frequency=ecfg_data.get("frequency", args.frequency),
         )
-        kwargs: dict = {}
-        if ename == "typewriter":
-            kwargs["chars_per_second"] = ecfg_data.get("chars_per_second", 50.0)
-        if ename == "glitch":
-            kwargs["intensity"] = ecfg_data.get("intensity", 0.05)
-        if ename == "pulse":
-            kwargs["min_brightness"] = ecfg_data.get("min_brightness", 0.25)
+        kwargs = {
+            key: value
+            for key, value in ecfg_data.items()
+            if key not in {"speed", "amplitude", "frequency"}
+        }
         try:
             banner.apply(build_effect(ename, config=cfg, **kwargs))
         except ValueError as exc:
@@ -107,18 +109,24 @@ def run_cli(args: argparse.Namespace) -> None:
 
     # ---- exports ------------------------------------------------------
     if args.export_txt:
-        exporter.export_txt(banner, Path(args.export_txt))
-        console.print(f"[green]TXT →[/green] {args.export_txt}")
+        try:
+            exporter.export_txt(banner, Path(args.export_txt))
+            console.print(f"[green]TXT →[/green] {args.export_txt}")
+        except Exception as exc:
+            console.print(f"[red]{exc}[/red]")
 
     if args.export_html:
-        exporter.export_html(banner, Path(args.export_html), gradient)
-        console.print(f"[green]HTML →[/green] {args.export_html}")
+        try:
+            exporter.export_html(banner, Path(args.export_html), gradient)
+            console.print(f"[green]HTML →[/green] {args.export_html}")
+        except Exception as exc:
+            console.print(f"[red]{exc}[/red]")
 
     if args.export_png:
         try:
             exporter.export_png(banner, Path(args.export_png), gradient)
             console.print(f"[green]PNG →[/green] {args.export_png}")
-        except RuntimeError as exc:
+        except Exception as exc:
             console.print(f"[red]{exc}[/red]")
 
     if args.export_gif:
@@ -126,12 +134,11 @@ def run_cli(args: argparse.Namespace) -> None:
             exporter.export_gif(
                 banner,
                 Path(args.export_gif),
-                gradient,
-                duration_s=args.gif_duration,
+                duration=args.gif_duration,
                 fps=args.gif_fps,
             )
             console.print(f"[green]GIF →[/green] {args.export_gif}")
-        except RuntimeError as exc:
+        except Exception as exc:
             console.print(f"[red]{exc}[/red]")
 
     # ---- save preset --------------------------------------------------
@@ -196,3 +203,13 @@ def _list_fonts(console: Console, engine: RenderEngine) -> None:
     for f in fonts:
         t.add_row(f)
     console.print(t)
+
+
+def _list_effects(console: Console) -> None:
+    table = Table(title="Effect Library", box=box.ROUNDED, border_style="cyan")
+    table.add_column("Tier", style="bold magenta")
+    table.add_column("Effects", style="white")
+    for tier_name, effects in EFFECT_TIERS.items():
+        table.add_row(tier_name.title(), ", ".join(effects))
+    table.caption = f"{len(AVAILABLE_EFFECTS)} effects"
+    console.print(table)

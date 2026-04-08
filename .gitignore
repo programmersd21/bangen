@@ -29,6 +29,8 @@ env/
 *.env
 .env
 
+banner.gif
+banner.png
 banner.txt
 
 .pytest_cache/

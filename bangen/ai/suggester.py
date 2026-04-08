@@ -70,13 +70,16 @@ _GRADIENT_RULES: list[tuple[set[str], str]] = [
 _EFFECT_RULES: list[tuple[set[str], list[str], dict[str, Any]]] = [
     (
         {"wave", "ocean", "flow", "ripple", "undulate"},
-        ["wave"],
-        {"wave": {"speed": 1.5, "amplitude": 2.0}},
+        ["wave", "gradient_shift"],
+        {"wave": {"speed": 1.5, "amplitude": 2.0}, "gradient_shift": {"speed": 0.8}},
     ),
     (
         {"glitch", "corrupt", "broken", "error", "hack", "distort"},
-        ["glitch"],
-        {"glitch": {"intensity": 0.1}},
+        ["glitch", "chromatic_aberration"],
+        {
+            "glitch": {"intensity": 0.1},
+            "chromatic_aberration": {"amplitude": 1.0},
+        },
     ),
     (
         {"pulse", "heartbeat", "breathe", "live", "throb", "beat"},
@@ -95,23 +98,50 @@ _EFFECT_RULES: list[tuple[set[str], list[str], dict[str, Any]]] = [
     ),
     (
         {"neon", "glow", "electric", "energy"},
-        ["pulse", "wave"],
-        {"pulse": {"speed": 2.0}, "wave": {"speed": 1.0, "amplitude": 1.5}},
+        ["neon_sign"],
+        {"neon_sign": {"speed": 1.2}},
     ),
     (
         {"cyberpunk", "glitchy", "hacker", "corrupt"},
-        ["glitch", "pulse"],
-        {"glitch": {"intensity": 0.08}, "pulse": {"speed": 1.0}},
+        ["glitch", "chromatic_aberration", "pulse"],
+        {
+            "glitch": {"intensity": 0.08},
+            "chromatic_aberration": {"amplitude": 1.0},
+            "pulse": {"speed": 1.0},
+        },
     ),
     (
         {"vaporwave", "dreamy", "chill", "slow"},
-        ["scroll", "pulse"],
-        {"scroll": {"speed": 0.5}, "pulse": {"speed": 0.6}},
+        ["scroll", "rainbow_cycle", "pulse"],
+        {
+            "scroll": {"speed": 0.5},
+            "rainbow_cycle": {"speed": 0.5},
+            "pulse": {"speed": 0.6},
+        },
     ),
     (
         {"storm", "lightning", "chaos", "wild"},
-        ["glitch", "wave"],
-        {"glitch": {"intensity": 0.15}, "wave": {"speed": 3.0, "amplitude": 2.0}},
+        ["electric", "shake"],
+        {"electric": {"speed": 2.8, "amplitude": 1.2}, "shake": {"amplitude": 1.0}},
+    ),
+    (
+        {"matrix", "rain", "codefall"},
+        ["matrix_rain"],
+        {"matrix_rain": {"speed": 1.0, "amplitude": 1.3}},
+    ),
+    (
+        {"retro", "crt", "vhs", "analog"},
+        ["vhs_glitch", "scanline", "flicker"],
+        {
+            "vhs_glitch": {"speed": 1.2, "amplitude": 1.1},
+            "scanline": {"speed": 0.8},
+            "flicker": {"speed": 0.8},
+        },
+    ),
+    (
+        {"fire", "flame", "inferno", "burning"},
+        ["fire", "melt"],
+        {"fire": {"speed": 1.4, "amplitude": 1.1}, "melt": {"amplitude": 0.9}},
     ),
 ]
 

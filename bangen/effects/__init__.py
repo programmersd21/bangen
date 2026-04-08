@@ -1,36 +1,165 @@
-"""Effect pipeline — registry and factory."""
+"""Effect pipeline registry and factory."""
 
 from __future__ import annotations
 
-from bangen.effects.base import BrightnessModifier, Effect, EffectConfig
-from bangen.effects.glitch import GlitchEffect
-from bangen.effects.pulse import PulseEffect
-from bangen.effects.scroll import ScrollEffect
-from bangen.effects.typewriter import TypewriterEffect
-from bangen.effects.wave import WaveEffect
+from bangen.effects.base import BrightnessModifier, CellStyle, Effect, EffectConfig, RasterLayer
+from bangen.effects.distortion import (
+    ChromaticAberrationEffect,
+    FragmentEffect,
+    GlitchEffect,
+    MeltEffect,
+    NoiseInjectionEffect,
+    ParticleDisintegrationEffect,
+    WarpEffect,
+)
+from bangen.effects.motion import (
+    BounceEffect,
+    DriftEffect,
+    ScrollEffect,
+    ShakeEffect,
+    VerticalWaveEffect,
+    WaveEffect,
+)
+from bangen.effects.signature import (
+    ElectricEffect,
+    FireEffect,
+    MatrixRainEffect,
+    NeonSignEffect,
+    VHSGlitchEffect,
+    WaveInterferenceEffect,
+)
+from bangen.effects.temporal import FadeInEffect, StaggerEffect, TypewriterEffect, WipeEffect
+from bangen.effects.visual import (
+    FlickerEffect,
+    GlowEffect,
+    GradientShiftEffect,
+    LoopPulseEffect,
+    PulseEffect,
+    RainbowCycleEffect,
+    ScanlineEffect,
+)
 
 __all__ = [
     "Effect",
     "EffectConfig",
     "BrightnessModifier",
+    "RasterLayer",
+    "CellStyle",
     "WaveEffect",
-    "GlitchEffect",
-    "PulseEffect",
-    "TypewriterEffect",
+    "VerticalWaveEffect",
+    "BounceEffect",
     "ScrollEffect",
+    "DriftEffect",
+    "ShakeEffect",
+    "GradientShiftEffect",
+    "PulseEffect",
+    "RainbowCycleEffect",
+    "GlowEffect",
+    "FlickerEffect",
+    "ScanlineEffect",
+    "TypewriterEffect",
+    "FadeInEffect",
+    "WipeEffect",
+    "StaggerEffect",
+    "LoopPulseEffect",
+    "GlitchEffect",
+    "ChromaticAberrationEffect",
+    "NoiseInjectionEffect",
+    "MeltEffect",
+    "WarpEffect",
+    "FragmentEffect",
+    "MatrixRainEffect",
+    "FireEffect",
+    "ElectricEffect",
+    "VHSGlitchEffect",
+    "NeonSignEffect",
+    "WaveInterferenceEffect",
+    "ParticleDisintegrationEffect",
     "EFFECT_REGISTRY",
+    "EFFECT_TIERS",
+    "AVAILABLE_EFFECTS",
     "build_effect",
 ]
 
-EFFECT_REGISTRY: dict[str, type[Effect]] = {
-    "wave": WaveEffect,
-    "glitch": GlitchEffect,
-    "pulse": PulseEffect,
-    "typewriter": TypewriterEffect,
-    "scroll": ScrollEffect,
+EFFECT_TIERS: dict[str, list[str]] = {
+    "motion": [
+        "wave",
+        "vertical_wave",
+        "bounce",
+        "scroll",
+        "drift",
+        "shake",
+    ],
+    "visual": [
+        "gradient_shift",
+        "pulse",
+        "rainbow_cycle",
+        "glow",
+        "flicker",
+        "scanline",
+    ],
+    "temporal": [
+        "typewriter",
+        "fade_in",
+        "wipe",
+        "stagger",
+        "loop_pulse",
+    ],
+    "distortion": [
+        "glitch",
+        "chromatic_aberration",
+        "noise_injection",
+        "melt",
+        "warp",
+        "fragment",
+    ],
+    "signature": [
+        "matrix_rain",
+        "fire",
+        "electric",
+        "vhs_glitch",
+        "neon_sign",
+        "wave_interference",
+        "particle_disintegration",
+    ],
 }
 
-AVAILABLE_EFFECTS: list[str] = list(EFFECT_REGISTRY.keys())
+EFFECT_REGISTRY: dict[str, type[Effect]] = {
+    "wave": WaveEffect,
+    "vertical_wave": VerticalWaveEffect,
+    "bounce": BounceEffect,
+    "scroll": ScrollEffect,
+    "drift": DriftEffect,
+    "shake": ShakeEffect,
+    "gradient_shift": GradientShiftEffect,
+    "pulse": PulseEffect,
+    "rainbow_cycle": RainbowCycleEffect,
+    "glow": GlowEffect,
+    "flicker": FlickerEffect,
+    "scanline": ScanlineEffect,
+    "typewriter": TypewriterEffect,
+    "fade_in": FadeInEffect,
+    "wipe": WipeEffect,
+    "stagger": StaggerEffect,
+    "loop_pulse": LoopPulseEffect,
+    "glitch": GlitchEffect,
+    "chromatic_aberration": ChromaticAberrationEffect,
+    "noise_injection": NoiseInjectionEffect,
+    "melt": MeltEffect,
+    "warp": WarpEffect,
+    "fragment": FragmentEffect,
+    "matrix_rain": MatrixRainEffect,
+    "fire": FireEffect,
+    "electric": ElectricEffect,
+    "vhs_glitch": VHSGlitchEffect,
+    "neon_sign": NeonSignEffect,
+    "wave_interference": WaveInterferenceEffect,
+    "particle_disintegration": ParticleDisintegrationEffect,
+}
+
+AVAILABLE_EFFECTS: list[str] = [
+    name for names in EFFECT_TIERS.values() for name in names
+]
 
 
 def build_effect(
@@ -38,30 +167,8 @@ def build_effect(
     config: EffectConfig | None = None,
     **kwargs: object,
 ) -> Effect:
-    """
-    Instantiate an effect by name.
-
-    Extra *kwargs* are forwarded to constructors that accept them
-    (e.g. ``chars_per_second`` for TypewriterEffect, ``intensity`` for
-    GlitchEffect).
-    """
+    """Instantiate an effect by name."""
     if name not in EFFECT_REGISTRY:
         raise ValueError(f"Unknown effect {name!r}. Available: {AVAILABLE_EFFECTS}")
-    cls = EFFECT_REGISTRY[name]
-    if name == "typewriter":
-        return TypewriterEffect(
-            config=config,
-            chars_per_second=float(kwargs.get("chars_per_second", 50.0)),
-        )
-    if name == "glitch":
-        return GlitchEffect(
-            config=config,
-            intensity=float(kwargs.get("intensity", 0.05)),
-        )
-    if name == "pulse":
-        return PulseEffect(
-            config=config,
-            min_brightness=float(kwargs.get("min_brightness", 0.25)),
-            max_brightness=float(kwargs.get("max_brightness", 1.0)),
-        )
-    return cls(config=config)
+    effect_class = EFFECT_REGISTRY[name]
+    return effect_class(config=config, **kwargs)

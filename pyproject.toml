@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bangen"
-version = "2.0.0"
-description = "Premium ASCII banner rendering engine with gradients, effects, live TUI, and multi-format export."
+version = "2.2.0"
+description = "ASCII banner rendering engine with a tiered effect library, live TUI, and transparent PNG/GIF export."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -25,11 +25,12 @@ classifiers = [
 dependencies = [
   "pyfiglet>=1.0",
   "rich>=13.0",
+  "Pillow>=10.0",
 ]
 
 [project.optional-dependencies]
-images = ["Pillow>=10.0"]
-all = ["Pillow>=10.0"]
+images = []
+all = []
 
 [project.urls]
 Homepage   = "https://github.com/programmersd21/bangen"

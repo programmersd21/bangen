@@ -15,10 +15,11 @@ def build_parser() -> argparse.ArgumentParser:
 Examples:
   bangen "HELLO"
   bangen "HELLO" --font slant --gradient "#ff00ff:#00ffff"
-  bangen "HELLO" --effect wave --effect pulse --speed 1.5
+  bangen "HELLO" --effect wave --effect chromatic_aberration --effect pulse --speed 1.5
   bangen --preset neon_wave "HELLO"
   bangen "HELLO" --ai "cyberpunk neon hacker vibe"
   bangen "HELLO" --export-png banner.png --export-gif banner.gif
+  bangen --list-effects
   bangen --list-presets
   bangen --list-fonts
 """,
@@ -40,7 +41,7 @@ Examples:
         action="append",
         dest="effects",
         default=None,
-        help="Effect name (repeatable): wave|glitch|pulse|typewriter|scroll",
+        help="Effect name (repeatable). Use --list-effects to inspect the full library.",
     )
     p.add_argument("--speed", type=float, default=1.0)
     p.add_argument("--amplitude", type=float, default=1.0)
@@ -48,6 +49,7 @@ Examples:
     p.add_argument("--preset", "-p", default=None)
     p.add_argument("--list-presets", action="store_true")
     p.add_argument("--list-fonts", action="store_true")
+    p.add_argument("--list-effects", action="store_true")
     p.add_argument("--export-txt", metavar="PATH")
     p.add_argument("--export-html", metavar="PATH")
     p.add_argument("--export-png", metavar="PATH")
