@@ -1,28 +1,22 @@
 name: Build Bangen (Nuitka)
-
 on:
   push:
     tags:
       - "v*"
   workflow_dispatch:
-
 jobs:
   build:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-
     runs-on: ${{ matrix.os }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Extract version (Unix)
         id: vars_unix
         if: runner.os != 'Windows'
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
-
       - name: Extract version (Windows)
         id: vars_win
         if: runner.os == 'Windows'
@@ -30,7 +24,6 @@ jobs:
         run: |
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-
       - name: Resolve version
         id: vars
         shell: bash
@@ -40,41 +33,37 @@ jobs:
           else
             echo "VERSION=${{ steps.vars_unix.outputs.VERSION }}" >> $GITHUB_OUTPUT
           fi
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential
-
       - name: Ensure Xcode CLI tools (macOS)
         if: runner.os == 'macOS'
         run: |
           xcode-select -p || xcode-select --install || true
-
       - name: Install MSVC build tools (Windows)
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
-
       - name: Cache Nuitka
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/Nuitka
+            ~/Library/Caches/Nuitka
             ~\AppData\Local\Nuitka\Nuitka\Cache
           key: nuitka-${{ runner.os }}-${{ hashFiles('**/*.py') }}
-
+          restore-keys: |
+            nuitka-${{ runner.os }}-
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install nuitka[onefile]
           pip install .
-
       - name: Create entry point script
         shell: bash
         run: |
@@ -83,7 +72,6 @@ jobs:
           if __name__ == "__main__":
               main()
           EOF
-
       - name: Build with Nuitka (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -113,7 +101,6 @@ jobs:
             --onefile-tempdir-spec={CACHE_DIR}/bangen/${{ steps.vars.outputs.VERSION }} \
             --static-libpython=yes \
             _entry.py
-
       - name: Build with Nuitka (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -143,7 +130,6 @@ jobs:
             --python-flag=isolated `
             "--onefile-tempdir-spec={CACHE_DIR}/bangen/${{ steps.vars.outputs.VERSION }}" `
             _entry.py
-
       - name: Prepare artifacts (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -153,39 +139,33 @@ jobs:
           else
             mv build/bangen dist/bangen-${{ steps.vars.outputs.VERSION }}-macos
           fi
-
       - name: Prepare artifacts (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist
           Move-Item build\bangen.exe dist\bangen-${{ steps.vars.outputs.VERSION }}-windows.exe
-
       - name: Strip binary (Linux only)
         if: runner.os == 'Linux'
         run: strip dist/bangen-${{ steps.vars.outputs.VERSION }}-linux
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bangen-${{ runner.os }}
           path: dist/*
-
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-
+    # FIX: also runs when manually dispatched, not only on tag pushes
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     steps:
       - name: Extract version
         id: vars
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
-
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
