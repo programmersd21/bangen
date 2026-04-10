@@ -18,6 +18,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Extract version
+        id: vars
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -69,7 +73,7 @@ jobs:
             --python-flag=no_asserts \
             --python-flag=no_docstrings \
             --python-flag=isolated \
-            --onefile-tempdir-spec={CACHE_DIR}/bangen/2.2.1 \
+            --onefile-tempdir-spec={CACHE_DIR}/bangen/${{ steps.vars.outputs.VERSION }} \
             --static-libpython=yes \
             _entry.py
 
@@ -77,14 +81,14 @@ jobs:
         run: |
           mkdir -p dist
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            mv build/bangen dist/bangen-linux
+            mv build/bangen dist/bangen-${{ steps.vars.outputs.VERSION }}-linux
           else
-            mv build/bangen dist/bangen-macos
+            mv build/bangen dist/bangen-${{ steps.vars.outputs.VERSION }}-macos
           fi
 
       - name: Strip binary (Linux only)
         if: runner.os == 'Linux'
-        run: strip dist/bangen-linux
+        run: strip dist/bangen-${{ steps.vars.outputs.VERSION }}-linux
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -98,6 +102,10 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
+      - name: Extract version
+        id: vars
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -106,6 +114,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: Bangen v${{ steps.vars.outputs.VERSION }}
           files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
