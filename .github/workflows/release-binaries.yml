@@ -73,6 +73,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install nuitka
+          pip install .
+
+      - name: Create entry point script
+        shell: bash
+        run: |
+          cat > _entry.py << 'EOF'
+          from bangen.app import main
+          if __name__ == "__main__":
+              main()
+          EOF
 
       - name: Build with Nuitka (Unix)
         if: runner.os != 'Windows'
@@ -88,6 +98,7 @@ jobs:
             --include-package=pyfiglet \
             --include-package-data=pyfiglet \
             --include-package=PIL \
+            --include-package-data=PIL \
             --include-package=typer \
             --include-package=click \
             --nofollow-import-to=tkinter \
@@ -118,6 +129,7 @@ jobs:
             --include-package=pyfiglet `
             --include-package-data=pyfiglet `
             --include-package=PIL `
+            --include-package-data=PIL `
             --include-package=typer `
             --include-package=click `
             --nofollow-import-to=tkinter `
