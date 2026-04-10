@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bangen"
-version = "2.2.1"
+version = "2.2.2"
 description = "ASCII banner rendering engine with a tiered effect library, live TUI, and transparent PNG/GIF export."
 readme = "README.md"
 requires-python = ">=3.11"
