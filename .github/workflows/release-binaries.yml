@@ -3,6 +3,8 @@ name: Build & Release Bangen
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - "pyproject.toml"
 
@@ -35,7 +37,7 @@ jobs:
           EOF
           )
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$VERSION"      >> "$GITHUB_OUTPUT"
 
       - name: Abort if tag already exists
         run: |
@@ -80,7 +82,7 @@ jobs:
           path: |
             ~/.cache/pip
             ~/AppData/Local/pip/Cache
-          key: pip-${{ runner.os }}-${{ hashFiles('requirements*.txt') }}
+          key: pip-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
           restore-keys: pip-${{ runner.os }}-
 
       - name: Cache Nuitka
@@ -102,7 +104,7 @@ jobs:
         shell: bash
         run: |
           python -m pip install -U pip wheel nuitka zstandard
-          [[ -f requirements.txt ]] && pip install -r requirements.txt || true
+          pip install ".[all]"
 
       - name: Build with Nuitka
         shell: bash
@@ -115,7 +117,12 @@ jobs:
             --assume-yes-for-downloads \
             --output-dir=build \
             --output-filename=bangen \
-            --nofollow-import-to=tkinter,unittest,test,distutils,setuptools,pkg_resources \
+            --include-package=bangen \
+            --include-package=pyfiglet \
+            --include-package=rich \
+            --include-package=PIL \
+            --include-package=typer \
+            --nofollow-import-to=tkinter,unittest,test,distutils,setuptools,pkg_resources,email,http,html,xml,xmlrpc \
             --python-flag=no_asserts,no_docstrings,isolated \
             --onefile-tempdir-spec="{CACHE_DIR}/bangen/$VERSION" \
             _entry.py
@@ -150,6 +157,10 @@ jobs:
       contents: write
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -160,8 +171,73 @@ jobs:
           cd artifacts
           sha256sum * > SHA256SUMS.txt
 
+      - name: Build release notes
+        id: notes
+        env:
+          VERSION: ${{ needs.tag.outputs.version }}
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^$VERSION$" | head -1)
+
+          if [[ -n "$PREV_TAG" ]]; then
+            COMMITS=$(git log "$PREV_TAG"..HEAD --pretty=format:"- %s (%h)" --no-merges)
+            COMPARE_URL="https://github.com/${{ github.repository }}/compare/$PREV_TAG...$VERSION"
+            SINCE_LINE="> Changes since \`$PREV_TAG\` · [Full diff]($COMPARE_URL)"
+          else
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+            SINCE_LINE="> Initial release"
+          fi
+
+          # Bucket commits by conventional prefix
+          FEATS=$(echo "$COMMITS"  | grep -E "^- feat"  | sed 's/^- feat[^:]*: /- /' || true)
+          FIXES=$(echo "$COMMITS"  | grep -E "^- fix"   | sed 's/^- fix[^:]*: /- /'  || true)
+          CHORES=$(echo "$COMMITS" | grep -E "^- (chore|refactor|perf|build|ci)" | sed 's/^- [^:]*: /- /' || true)
+          OTHER=$(echo "$COMMITS"  | grep -vE "^- (feat|fix|chore|refactor|perf|build|ci)" || true)
+
+          {
+            echo "body<<NOTES_EOF"
+            echo "# ✨ Bangen $VERSION"
+            echo ""
+            echo "$SINCE_LINE"
+            echo ""
+            echo "---"
+            echo ""
+            if [[ -n "$FEATS" ]]; then
+              echo "## 🚀 What's New"
+              echo "$FEATS"
+              echo ""
+            fi
+            if [[ -n "$FIXES" ]]; then
+              echo "## 🐛 Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+            if [[ -n "$CHORES" ]]; then
+              echo "## 🔧 Maintenance"
+              echo "$CHORES"
+              echo ""
+            fi
+            if [[ -n "$OTHER" ]]; then
+              echo "## 📝 Other Changes"
+              echo "$OTHER"
+              echo ""
+            fi
+            echo "---"
+            echo ""
+            echo "## 📦 Downloads"
+            echo ""
+            echo "| Platform | File |"
+            echo "|----------|------|"
+            echo "| 🐧 Linux  | \`bangen-linux-$VERSION.tar.gz\` |"
+            echo "| 🪟 Windows | \`bangen-windows-$VERSION.zip\` |"
+            echo "| 🍎 macOS  | \`bangen-macos-$VERSION.tar.gz\` |"
+            echo ""
+            echo "> 🔒 Verify downloads with \`SHA256SUMS.txt\`"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.tag.outputs.tag }}
-          name: Bangen ${{ needs.tag.outputs.version }}
+          name: "✨ Bangen ${{ needs.tag.outputs.version }}"
+          body: ${{ steps.notes.outputs.body }}
           files: artifacts/*
