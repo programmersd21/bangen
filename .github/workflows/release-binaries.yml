@@ -33,11 +33,18 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           SHA=$(git rev-parse --short HEAD)
-          DEPS_HASH=$(shasum -a 256 pyproject.toml 2>/dev/null | cut -d' ' -f1 || echo "nodeps")
 
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "SHA=$SHA" >> $GITHUB_OUTPUT
-          echo "DEPS=$DEPS_HASH" >> $GITHUB_OUTPUT
+          # sha256sum on Linux, shasum on macOS — both unavailable on Windows
+          # so we use Python for a cross-platform hash
+          DEPS_HASH=$(python -c "
+          import hashlib, pathlib
+          p = pathlib.Path('pyproject.toml')
+          print(hashlib.sha256(p.read_bytes()).hexdigest()[:16] if p.exists() else 'nodeps')
+          ")
+
+          echo "VERSION=$VERSION"           >> $GITHUB_OUTPUT
+          echo "SHA=$SHA"                   >> $GITHUB_OUTPUT
+          echo "DEPS=$DEPS_HASH"            >> $GITHUB_OUTPUT
           echo "CACHE_KEY=${{ runner.os }}-$VERSION-$DEPS_HASH" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-python@v5
@@ -60,7 +67,9 @@ jobs:
 
       - name: Install system deps (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y build-essential strip
+        # build-essential already pulls in binutils (which provides strip).
+        # Do NOT list "strip" — it is not a package name and will abort apt.
+        run: sudo apt-get update && sudo apt-get install -y build-essential patchelf
 
       - name: Install system deps (macOS)
         if: runner.os == 'macOS'
@@ -70,10 +79,10 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install Python deps (locked build)
+      - name: Install Python deps
         run: |
           python -m pip install -U pip wheel setuptools
-          pip install nuitka[onefile]
+          pip install nuitka
           pip install .
 
       - name: Create entrypoint
@@ -85,11 +94,11 @@ jobs:
               main()
           EOF
 
-      - name: Nuitka parallel build (REAL speed boost)
+      - name: Build with Nuitka
         shell: bash
         run: |
           python -m nuitka \
-            --mode=onefile \
+            --onefile \
             --lto=yes \
             --jobs=2 \
             --assume-yes-for-downloads \
@@ -110,10 +119,10 @@ jobs:
             --python-flag=no_asserts \
             --python-flag=no_docstrings \
             --python-flag=isolated \
-            --onefile-tempdir-spec={CACHE_DIR}/bangen/${{ steps.meta.outputs.VERSION }} \
+            "--onefile-tempdir-spec={CACHE_DIR}/bangen/${{ steps.meta.outputs.VERSION }}" \
             _entry.py
 
-      - name: Fingerprinted artifacts (immutable builds)
+      - name: Stage fingerprinted artifact
         shell: bash
         run: |
           mkdir -p dist
@@ -121,10 +130,14 @@ jobs:
 
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             mv build/bangen dist/$NAME
+            # strip is provided by binutils (part of build-essential)
             strip dist/$NAME
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
             mv build/bangen dist/$NAME
+            # strip ships with Xcode Command Line Tools
+            strip dist/$NAME
           else
+            # Nuitka always appends .exe on Windows regardless of --output-filename
             mv build/bangen.exe dist/$NAME.exe
           fi
 
@@ -138,20 +151,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout is required so git log/describe have history to work with
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so git describe can find previous tags
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true   # flatten into artifacts/ instead of artifacts/<name>/
 
-      - name: Generate changelog (safe range)
+      - name: Generate changelog
         id: changelog
         shell: bash
         run: |
-          PREV=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-          git log $PREV..HEAD --pretty=format:"- %s" >> $GITHUB_OUTPUT || true
-          echo "EOF" >> $GITHUB_OUTPUT
+          PREV=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          {
+            echo "CHANGELOG<<EOF"
+            if [[ -n "$PREV" ]]; then
+              git log "$PREV"..HEAD --pretty=format:"- %s"
+            else
+              git log --pretty=format:"- %s"
+            fi
+            echo ""
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
-      - name: Create DRAFT release (approval pipeline)
+      - name: Create DRAFT release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -162,7 +188,7 @@ jobs:
             ${{ steps.changelog.outputs.CHANGELOG }}
 
             ## 🧬 Build Info
-            - Commit: ${{ github.sha }}
-            - Parallel matrix build (Linux/macOS/Windows)
-            - Nuitka LTO enabled
-          files: artifacts/**/*
+            - Commit: `${{ github.sha }}`
+            - Matrix build: Linux · macOS · Windows
+            - Nuitka LTO + onefile
+          files: artifacts/*
