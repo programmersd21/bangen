@@ -3,16 +3,57 @@ name: Build & Release Bangen
 on:
   workflow_dispatch:
   push:
-    tags:
-      - "*.*.*"
+    paths:
+      - "pyproject.toml"
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  tag:
+    name: Extract version & create tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      tag: ${{ steps.extract.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from pyproject.toml
+        id: extract
+        run: |
+          VERSION=$(python - <<'EOF'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+              print(tomllib.load(f)["project"]["version"])
+          EOF
+          )
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Abort if tag already exists
+        run: |
+          if git rev-parse "refs/tags/${{ steps.extract.outputs.tag }}" &>/dev/null; then
+            echo "Tag ${{ steps.extract.outputs.tag }} already exists — skipping release."
+            exit 1
+          fi
+
+      - name: Create and push tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.extract.outputs.tag }}"
+          git push origin "${{ steps.extract.outputs.tag }}"
+
   build:
     name: Build (${{ matrix.name }})
+    needs: tag
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -65,6 +106,8 @@ jobs:
 
       - name: Build with Nuitka
         shell: bash
+        env:
+          VERSION: ${{ needs.tag.outputs.version }}
         run: |
           printf 'from bangen.app import main\nif __name__ == "__main__":\n    main()\n' > _entry.py
           python -m nuitka \
@@ -74,14 +117,16 @@ jobs:
             --output-filename=bangen \
             --nofollow-import-to=tkinter,unittest,test,distutils,setuptools,pkg_resources \
             --python-flag=no_asserts,no_docstrings,isolated \
-            --onefile-tempdir-spec="{CACHE_DIR}/bangen/${{ github.ref_name }}" \
+            --onefile-tempdir-spec="{CACHE_DIR}/bangen/$VERSION" \
             _entry.py
 
       - name: Package artifact
         shell: bash
+        env:
+          VERSION: ${{ needs.tag.outputs.version }}
         run: |
           mkdir -p dist
-          NAME="bangen-${{ matrix.name }}-${{ github.ref_name }}"
+          NAME="bangen-${{ matrix.name }}-$VERSION"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             mv build/bangen.exe dist/"$NAME.exe"
             powershell -Command "Compress-Archive -Path dist\\$NAME.exe -DestinationPath dist\\$NAME.zip"
@@ -99,7 +144,7 @@ jobs:
 
   release:
     name: Publish Release
-    needs: build
+    needs: [tag, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -117,6 +162,6 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Bangen ${{ github.ref_name }}
+          tag_name: ${{ needs.tag.outputs.tag }}
+          name: Bangen ${{ needs.tag.outputs.version }}
           files: artifacts/*
