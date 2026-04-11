@@ -12,7 +12,6 @@ concurrency:
 
 jobs:
   tag:
-    name: Extract version & create tag
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -30,52 +29,54 @@ jobs:
         run: |
           VERSION=$(python3 - <<'EOF'
           import tomllib
-          with open("pyproject.toml", "rb") as f:
+          with open("pyproject.toml","rb") as f:
               print(tomllib.load(f)["project"]["version"])
           EOF
           )
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$VERSION" >> $GITHUB_OUTPUT
 
       - id: check
         run: |
           if git rev-parse "refs/tags/${{ steps.extract.outputs.tag }}" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "exists=true" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
       - if: steps.check.outputs.exists == 'false'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
           git tag "${{ steps.extract.outputs.tag }}"
           git push origin "${{ steps.extract.outputs.tag }}"
 
   build-linux:
-    name: Build (linux)
     needs: tag
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build inside manylinux2014 (glibc 2.17)
+      - name: Build Linux (manylinux2014)
         env:
           VERSION: ${{ needs.tag.outputs.version }}
         run: |
-          printf 'from bangen.app import main\nif __name__ == "__main__":\n    main()\n' > _entry.py
+          printf 'from bangen.app import main\nif __name__=="__main__": main()\n' > _entry.py
 
           docker run --rm \
             -u $(id -u):$(id -g) \
+            -e HOME=/tmp \
+            -e PIP_NO_CACHE_DIR=1 \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
-            -e VERSION="$VERSION" \
             ghcr.io/yt-dlp/manylinux2014_x86_64-shared \
             bash -c '
               set -euo pipefail
-              py3.13 -m pip install -q -U pip wheel pyinstaller
-              py3.13 -m pip install -q ".[all]"
+
+              py3.13 -m pip install -U pip wheel pyinstaller --no-cache-dir
+              py3.13 -m pip install ".[all]" --no-cache-dir
+
               py3.13 -m PyInstaller \
                 --onefile \
                 --noconfirm \
@@ -103,25 +104,22 @@ jobs:
                 --optimize 2 \
                 _entry.py
 
-              echo "=== GLIBC symbols ==="
-              strings dist/bangen | grep "GLIBC_" | sort -V | uniq
+              echo "=== GLIBC CHECK ==="
+              strings dist/bangen | grep GLIBC_ | sort -V | uniq
 
               if strings dist/bangen | grep -E "GLIBC_2\.(1[89]|[2-9][0-9])"; then
-                echo "ERROR: Binary requires glibc newer than 2.17!"
+                echo "ERROR: requires newer glibc"
                 exit 1
               fi
 
               echo "✅ glibc 2.17 compatible"
             '
 
-      - name: Package artifact
-        env:
-          VERSION: ${{ needs.tag.outputs.version }}
-        run: |
+      - run: |
           mkdir -p release
-          NAME="bangen-linux-$VERSION"
-          mv dist/bangen release/"$NAME"
-          (cd release && tar -czf "$NAME.tar.gz" "$NAME" && rm "$NAME")
+          NAME="bangen-linux-${{ needs.tag.outputs.version }}"
+          mv dist/bangen release/$NAME
+          cd release && tar -czf "$NAME.tar.gz" "$NAME" && rm "$NAME"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -130,20 +128,18 @@ jobs:
           retention-days: 1
 
   build-windows-macos:
-    name: Build (${{ matrix.name }})
     needs: tag
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             name: windows
-            binary: bangen.exe
+            bin: bangen.exe
           - os: macos-latest
             name: macos
-            binary: bangen
+            bin: bangen
 
     steps:
       - uses: actions/checkout@v4
@@ -152,22 +148,12 @@ jobs:
         with:
           python-version: "3.11"
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-            ~/AppData/Local/pip/Cache
-          key: pip-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: pip-${{ runner.os }}-
-
       - run: |
           python -m pip install -U pip wheel pyinstaller
           pip install ".[all]"
 
-      - env:
-          VERSION: ${{ needs.tag.outputs.version }}
-        run: |
-          printf 'from bangen.app import main\nif __name__ == "__main__":\n    main()\n' > _entry.py
+      - run: |
+          printf 'from bangen.app import main\nif __name__=="__main__": main()\n' > _entry.py
           python -m PyInstaller \
             --onefile \
             --noconfirm \
@@ -175,39 +161,20 @@ jobs:
             --name bangen \
             --distpath dist \
             --workpath build \
-            --collect-all bangen \
-            --collect-all pyfiglet \
-            --collect-all rich \
-            --collect-all PIL \
-            --collect-all typer \
-            --exclude-module tkinter \
-            --exclude-module unittest \
-            --exclude-module test \
-            --exclude-module distutils \
-            --exclude-module setuptools \
-            --exclude-module pkg_resources \
-            --exclude-module email \
-            --exclude-module http \
-            --exclude-module html \
-            --exclude-module xml \
-            --exclude-module xmlrpc \
             --optimize 2 \
             _entry.py
 
-      - name: Package artifact
-        env:
-          VERSION: ${{ needs.tag.outputs.version }}
-          BINARY: ${{ matrix.binary }}
-        run: |
+      - run: |
           mkdir -p release
-          NAME="bangen-${{ matrix.name }}-$VERSION"
+          NAME="bangen-${{ matrix.name }}-${{ needs.tag.outputs.version }}"
+
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            mv "dist/$BINARY" "release/$NAME.exe"
+            mv dist/${{ matrix.bin }} release/$NAME.exe
             powershell -Command "Compress-Archive -Path release\\$NAME.exe -DestinationPath release\\$NAME.zip"
-            rm "release/$NAME.exe"
+            rm release/$NAME.exe
           else
-            mv "dist/$BINARY" "release/$NAME"
-            (cd release && tar -czf "$NAME.tar.gz" "$NAME" && rm "$NAME")
+            mv dist/${{ matrix.bin }} release/$NAME
+            cd release && tar -czf "$NAME.tar.gz" "$NAME" && rm "$NAME"
           fi
 
       - uses: actions/upload-artifact@v4
@@ -217,7 +184,6 @@ jobs:
           retention-days: 1
 
   release:
-    name: Publish Release
     needs: [tag, build-linux, build-windows-macos]
     if: needs.tag.outputs.exists == 'false'
     runs-on: ubuntu-latest
@@ -237,5 +203,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.tag.outputs.tag }}
-          name: "✨ Bangen ${{ needs.tag.outputs.version }}"
+          name: "Bangen ${{ needs.tag.outputs.version }}"
           files: artifacts/*
