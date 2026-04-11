@@ -19,14 +19,14 @@ jobs:
     outputs:
       version: ${{ steps.extract.outputs.version }}
       tag: ${{ steps.extract.outputs.tag }}
+      exists: ${{ steps.check.outputs.exists }}
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Extract version from pyproject.toml
-        id: extract
+      - id: extract
         run: |
           VERSION=$(python3 - <<'EOF'
           import tomllib
@@ -35,18 +35,19 @@ jobs:
           EOF
           )
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$VERSION"      >> "$GITHUB_OUTPUT"
+          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Abort if tag already exists
+      - id: check
         run: |
-          if git rev-parse "refs/tags/${{ steps.extract.outputs.tag }}" &>/dev/null; then
-            echo "Tag ${{ steps.extract.outputs.tag }} already exists — skipping release."
-            exit 1
+          if git rev-parse "refs/tags/${{ steps.extract.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create and push tag
+      - if: steps.check.outputs.exists == 'false'
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "${{ steps.extract.outputs.tag }}"
           git push origin "${{ steps.extract.outputs.tag }}"
@@ -59,13 +60,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build inside manylinux2014 + shared Python (glibc 2.17)
+      - name: Build inside manylinux2014 (glibc 2.17)
         env:
           VERSION: ${{ needs.tag.outputs.version }}
         run: |
           printf 'from bangen.app import main\nif __name__ == "__main__":\n    main()\n' > _entry.py
 
           docker run --rm \
+            -u $(id -u):$(id -g) \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
             -e VERSION="$VERSION" \
@@ -100,16 +102,18 @@ jobs:
                 --exclude-module xmlrpc \
                 --optimize 2 \
                 _entry.py
+
               echo "=== GLIBC symbols ==="
               strings dist/bangen | grep "GLIBC_" | sort -V | uniq
+
               if strings dist/bangen | grep -E "GLIBC_2\.(1[89]|[2-9][0-9])"; then
                 echo "ERROR: Binary requires glibc newer than 2.17!"
                 exit 1
               fi
+
               echo "✅ glibc 2.17 compatible"
-              sudo chown -R "$(id -u):$(id -g)" dist/
             '
-            
+
       - name: Package artifact
         env:
           VERSION: ${{ needs.tag.outputs.version }}
@@ -148,8 +152,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Cache pip
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
@@ -157,15 +160,11 @@ jobs:
           key: pip-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
           restore-keys: pip-${{ runner.os }}-
 
-      - name: Install Python deps
-        shell: bash
-        run: |
+      - run: |
           python -m pip install -U pip wheel pyinstaller
           pip install ".[all]"
 
-      - name: Build with PyInstaller
-        shell: bash
-        env:
+      - env:
           VERSION: ${{ needs.tag.outputs.version }}
         run: |
           printf 'from bangen.app import main\nif __name__ == "__main__":\n    main()\n' > _entry.py
@@ -196,7 +195,6 @@ jobs:
             _entry.py
 
       - name: Package artifact
-        shell: bash
         env:
           VERSION: ${{ needs.tag.outputs.version }}
           BINARY: ${{ matrix.binary }}
@@ -221,142 +219,23 @@ jobs:
   release:
     name: Publish Release
     needs: [tag, build-linux, build-windows-macos]
+    if: needs.tag.outputs.exists == 'false'
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
 
-      - name: Generate checksums
-        run: |
+      - run: |
           cd artifacts
           sha256sum * > SHA256SUMS.txt
-
-      - name: Build release notes
-        id: notes
-        env:
-          VERSION: ${{ needs.tag.outputs.version }}
-        run: |
-          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^$VERSION$" | head -1)
-
-          if [[ -n "$PREV_TAG" ]]; then
-            COMMITS=$(git log "$PREV_TAG"..HEAD --pretty=format:"- %s (%h)" --no-merges)
-            COMPARE_URL="https://github.com/${{ github.repository }}/compare/$PREV_TAG...$VERSION"
-            SINCE_LINE="> Changes since \`$PREV_TAG\` · [Full diff]($COMPARE_URL)"
-          else
-            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
-            SINCE_LINE="> Initial release"
-          fi
-
-          FEATS=$(echo "$COMMITS"  | grep -E "^- feat"                            | sed 's/^- feat[^:]*: /- /'  || true)
-          FIXES=$(echo "$COMMITS"  | grep -E "^- fix"                             | sed 's/^- fix[^:]*: /- /'   || true)
-          CHORES=$(echo "$COMMITS" | grep -E "^- (chore|refactor|perf|build|ci)"  | sed 's/^- [^:]*: /- /'     || true)
-          OTHER=$(echo "$COMMITS"  | grep -vE "^- (feat|fix|chore|refactor|perf|build|ci)"                     || true)
-
-          LINUX_SHA=$(grep   "bangen-linux-$VERSION.tar.gz"   artifacts/SHA256SUMS.txt | awk '{print $1}' || true)
-          WINDOWS_SHA=$(grep "bangen-windows-$VERSION.zip"    artifacts/SHA256SUMS.txt | awk '{print $1}' || true)
-          MACOS_SHA=$(grep   "bangen-macos-$VERSION.tar.gz"   artifacts/SHA256SUMS.txt | awk '{print $1}' || true)
-
-          {
-            echo "body<<NOTES_EOF"
-            echo "# ✨ Bangen $VERSION"
-            echo ""
-            echo "$SINCE_LINE"
-            echo ""
-            echo "---"
-            echo ""
-            if [[ -n "$FEATS" ]]; then
-              echo "## 🚀 What's New"
-              echo "$FEATS"
-              echo ""
-            fi
-            if [[ -n "$FIXES" ]]; then
-              echo "## 🐛 Bug Fixes"
-              echo "$FIXES"
-              echo ""
-            fi
-            if [[ -n "$CHORES" ]]; then
-              echo "## 🔧 Maintenance"
-              echo "$CHORES"
-              echo ""
-            fi
-            if [[ -n "$OTHER" ]]; then
-              echo "## 📝 Other Changes"
-              echo "$OTHER"
-              echo ""
-            fi
-            echo "---"
-            echo ""
-            echo "## 📦 Downloads"
-            echo ""
-            echo "Pre-built native binaries — **no Python installation required.**"
-            echo ""
-            echo "| Platform | Architecture | File | SHA-256 |"
-            echo "|----------|-------------|------|---------|"
-            echo "| 🐧 Linux   | x86_64      | \`bangen-linux-$VERSION.tar.gz\`   | \`$LINUX_SHA\`   |"
-            echo "| 🪟 Windows | x86_64      | \`bangen-windows-$VERSION.zip\`    | \`$WINDOWS_SHA\` |"
-            echo "| 🍎 macOS   | arm64       | \`bangen-macos-$VERSION.tar.gz\`   | \`$MACOS_SHA\`   |"
-            echo ""
-            echo "### 🐧 Linux compatibility"
-            echo ""
-            echo "The Linux binary is built inside a \`manylinux2014\` (CentOS 7) container against **glibc 2.17**,"
-            echo "making it compatible with virtually any Linux system from 2014 onwards — including:"
-            echo ""
-            echo "| Environment | Compatible |"
-            echo "|-------------|-----------|"
-            echo "| Google Colab | ✅ |"
-            echo "| Ubuntu 16.04+ | ✅ |"
-            echo "| Debian 8+ | ✅ |"
-            echo "| RHEL / CentOS 7+ | ✅ |"
-            echo "| Fedora 20+ | ✅ |"
-            echo "| Old VPS / servers | ✅ |"
-            echo "| GitHub Actions runners | ✅ |"
-            echo ""
-            echo "### 🚀 Quick Install"
-            echo ""
-            echo "\`\`\`bash"
-            echo "# Linux"
-            echo "tar -xzf bangen-linux-$VERSION.tar.gz"
-            echo "chmod +x bangen-linux-$VERSION"
-            echo "sudo mv bangen-linux-$VERSION /usr/local/bin/bangen"
-            echo ""
-            echo "# macOS"
-            echo "tar -xzf bangen-macos-$VERSION.tar.gz"
-            echo "chmod +x bangen-macos-$VERSION"
-            echo "sudo mv bangen-macos-$VERSION /usr/local/bin/bangen"
-            echo ""
-            echo "# Windows (PowerShell)"
-            echo "Expand-Archive bangen-windows-$VERSION.zip ."
-            echo "# Move bangen.exe somewhere on your PATH"
-            echo ""
-            echo "# Google Colab"
-            echo "!wget -q https://github.com/${{ github.repository }}/releases/download/$VERSION/bangen-linux-$VERSION.tar.gz"
-            echo "!tar -xzf bangen-linux-$VERSION.tar.gz"
-            echo "!chmod +x bangen-linux-$VERSION && mv bangen-linux-$VERSION /usr/local/bin/bangen"
-            echo "!bangen --help"
-            echo "\`\`\`"
-            echo ""
-            echo "### 🔒 Verify Your Download"
-            echo ""
-            echo "\`\`\`bash"
-            echo "sha256sum -c SHA256SUMS.txt"
-            echo "\`\`\`"
-            echo ""
-            echo "> Full checksums for all artifacts are in \`SHA256SUMS.txt\`, included in the release assets below."
-            echo "NOTES_EOF"
-          } >> "$GITHUB_OUTPUT"
 
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.tag.outputs.tag }}
           name: "✨ Bangen ${{ needs.tag.outputs.version }}"
-          body: ${{ steps.notes.outputs.body }}
           files: artifacts/*
