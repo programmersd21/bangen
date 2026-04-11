@@ -107,7 +107,7 @@ jobs:
                 exit 1
               fi
               echo "✅ glibc 2.17 compatible"
-              sudo chown -R "$USER:$USER" dist/
+              sudo chown -R "$(id -u):$(id -g)" dist/
             '
             
       - name: Package artifact
