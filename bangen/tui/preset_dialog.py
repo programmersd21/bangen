@@ -47,6 +47,7 @@ class PresetDialog:
         self.current_field = 0
         self.edit_field: str | None = None
         self.edit_buffer = ""
+        self.edit_cursor = 0
         self.closed = False
         self.status_message = ""
         self.error_message = ""
@@ -194,6 +195,7 @@ class PresetDialog:
         if field == "path" and self.source == "file":
             self.edit_field = "path"
             self.edit_buffer = self.path
+            self.edit_cursor = len(self.edit_buffer)
             return
 
         if field == "load":
@@ -262,7 +264,13 @@ class PresetDialog:
         editing = self.edit_field == field_id
         selected = self._current_field_id() == field_id and self.edit_field is None
 
-        display = f"{self.edit_buffer}█" if editing else value
+        if editing:
+            # Show cursor position in edit buffer
+            before_cursor = self.edit_buffer[: self.edit_cursor]
+            after_cursor = self.edit_buffer[self.edit_cursor :]
+            display = f"{before_cursor}█{after_cursor}"
+        else:
+            display = value
         style = "bold black on cyan" if (selected or editing) else "white"
 
         text = Text()
@@ -279,15 +287,50 @@ class PresetDialog:
         if key == "\x1b":
             self.edit_field = None
             self.edit_buffer = ""
+            self.edit_cursor = 0
             self.error_message = ""
             return
 
-        if key in ("\x08", "\x7f"):
-            self.edit_buffer = self.edit_buffer[:-1]
+        # Arrow key handling for cursor movement
+        if key == "\x1b[D":  # Left arrow
+            self.edit_cursor = max(0, self.edit_cursor - 1)
+            return
+
+        if key == "\x1b[C":  # Right arrow
+            self.edit_cursor = min(len(self.edit_buffer), self.edit_cursor + 1)
+            return
+
+        if key in ("\x08", "\x7f"):  # Backspace
+            if self.edit_cursor > 0:
+                self.edit_buffer = (
+                    self.edit_buffer[: self.edit_cursor - 1]
+                    + self.edit_buffer[self.edit_cursor :]
+                )
+                self.edit_cursor -= 1
+            return
+
+        if key == "\x16":  # Ctrl+V for paste
+            try:
+                import pyperclip
+
+                clipboard_text = pyperclip.paste()
+                self.edit_buffer = (
+                    self.edit_buffer[: self.edit_cursor]
+                    + clipboard_text
+                    + self.edit_buffer[self.edit_cursor :]
+                )
+                self.edit_cursor += len(clipboard_text)
+            except Exception:
+                pass  # Silently ignore if pyperclip not available
             return
 
         if key.isprintable():
-            self.edit_buffer += key
+            self.edit_buffer = (
+                self.edit_buffer[: self.edit_cursor]
+                + key
+                + self.edit_buffer[self.edit_cursor :]
+            )
+            self.edit_cursor += 1
 
     def _commit_edit(self) -> None:
         value = self.edit_buffer.strip()

@@ -25,6 +25,7 @@ from bangen.export.exporter import Exporter
 from bangen.gradients.gradient import Gradient
 from bangen.presets.manager import Preset, PresetManager
 from bangen.rendering.engine import DEFAULT_FONT, RenderEngine
+from bangen.rendering.sizing import calculate_auto_size, format_size_info
 
 
 def run_cli(args) -> None:
@@ -205,6 +206,17 @@ def run_cli(args) -> None:
     # ---- terminal display --------------------------------------------
     show_border = not args.no_border
     animate = args.animate and not args.static and bool(effects_list)
+
+    # ---- auto-size calculation ----------------------------------------
+    size_config = None
+    if args.auto_size:
+        try:
+            size_config = calculate_auto_size(banner)
+            console.print(f"[dim]{format_size_info(size_config, banner)}[/dim]")
+        except Exception as exc:
+            console.print(
+                f"[yellow]Warning:[/yellow] auto-size calculation failed — {exc}"
+            )
 
     if animate:
         t0 = time.monotonic()

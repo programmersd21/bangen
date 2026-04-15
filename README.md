@@ -40,6 +40,7 @@ Built for terminal art, title cards, intros, and animated text that still feels 
 
 - Live split-screen TUI with export modal
 - Static and animated banner rendering
+- Auto-sizing based on terminal and text dimensions
 - Transparent `PNG` and animated transparent `GIF` export
 - Plain `TXT` export with exact ASCII output
 - CLI export progress with percentage, elapsed time, ETA, and status text
@@ -123,12 +124,18 @@ Controls:
 - `↑↓` navigate fields and effects
 - `←→` adjust font or numeric settings
 - `Enter` edit or toggle the selected field
+- `Ctrl+V` paste from clipboard (in text input fields)
+- `a` toggle auto-size info display (shows terminal-relative sizing)
 - `l` load a saved preset or load from a custom preset file
 - `e` open the export dialog
 - `s` save the current preset
 - `q` quit
 
 The effect selector is windowed, so you can move through the full library without overflowing the controls panel.
+
+**Text Input:** All text input boxes (text, path, gradient) now support pasting from your clipboard using `Ctrl+V`, making it easier to work with long or complex values.
+
+**Auto-Size Info:** Press `a` to toggle a display of the calculated banner sizing in relation to your terminal dimensions. Shows: text dimensions, calculated canvas size, scale factor, and padding.
 
 ### Export Dialog 📦
 
@@ -180,13 +187,40 @@ bangen "HELLO" --effect wave --effect glow --export-gif banner.gif --gif-duratio
 
 CLI exports show a live progress bar with percentage, elapsed time, ETA, and the current export stage.
 
+#### Auto-Size
+
+Auto-sizing is **enabled by default**. It automatically adjusts banner width/height based on terminal and text dimensions for optimal rendering and exports.
+
+Disable auto-sizing if needed:
+
+```bash
+bangen "HELLO" --no-auto-size
+bangen "HELLO" --no-auto-size --export-txt banner.txt
+```
+
+Enable it explicitly (already default):
+
+```bash
+bangen "HELLO" --auto-size
+bangen "HELLO" --auto-size --export-gif banner.gif --gif-duration 3 --gif-fps 20
+```
+
+**Auto-Size Features:**
+- Enabled by default (use `--no-auto-size` to disable)
+- Analyzes your current terminal dimensions
+- Calculates optimal canvas width and height
+- Applies intelligent scaling (maintains aspect ratio)
+- Shows sizing info: `Text: WxH | Canvas: WxH | Scale: Sx | Padding: (X,Y)`
+- Works with all export formats (`GIF`, `PNG`, `TXT`)
+- Ensures exports are properly sized relative to the rendering environment
+
 ## Releases 📦
 
 GitHub Actions builds standalone binaries for `Windows`, `macOS`, and `Linux` and uploads them to the matching GitHub release.
 
 - asset names follow the project version from `pyproject.toml`
 - release files include the platform in the filename
-- the release workflow expects a tag matching the project version, for example `v2.2.2`
+- the release workflow expects a tag matching the project version, for example `v2.2.3`
 - release builds explicitly bundle the TUI package, effect modules, `pyfiglet` font assets, Rich, and Pillow runtime pieces so the standalone app works outside a Python environment
 
 #### Screensaver
@@ -270,6 +304,8 @@ banner.apply(build_effect("wave", config=cfg))
 banner.apply(build_effect("chromatic_aberration", config=cfg))
 banner.apply(build_effect("pulse", config=cfg))
 ```
+
+**Multiple Effects Stability:** When combining many effects (3+), the rendering engine now intelligently normalizes opacity and brightness values to prevent pixelation, noise, and visual artifacts. This ensures your stacked effects remain sharp and clear in both TUI preview and exports (GIF, PNG, TXT).
 
 Common style stacks:
 
@@ -363,9 +399,12 @@ bangen/
 
 ## Notes 📝
 
-- Animated exports look best when you keep effect stacks readable instead of maxing out distortion-heavy combinations.
+- Auto-sizing (`--auto-size` flag or `a` key in TUI) intelligently adjusts banner dimensions based on terminal size for optimal rendering and exports.
+- Animated exports are now rendered with optimized font sizing (11px) for sharp, crisp ASCII art without pixelation artifacts.
+- Animated exports look best when you keep effect stacks readable instead of maxing out distortion-heavy combinations. The rendering engine now handles complex effect stacks gracefully without artifacts.
 - Temporal effects such as `wipe` and `typewriter` are best previewed with `--animate` in the terminal before exporting.
 - `--screensaver` is designed for live terminal playback, not export generation.
+- Text input fields in dialogs support copy-paste via `Ctrl+V` for easier workflow.
 
 ## License 📄
 

@@ -76,23 +76,29 @@ class Banner:
             )
 
         color = self._base_color(position)
-        opacity = 1.0
-        brightness = 1.0
+
+        # Collect individual effect contributions to prevent stacking artifacts
+        opacity_values = [1.0]
+        brightness_values = [1.0]
 
         for effect in self._effects:
-            brightness *= effect.brightness(
-                t,
-                row=row,
-                col=col,
-                char=char,
-                lines=lines,
+            brightness_values.append(
+                effect.brightness(
+                    t,
+                    row=row,
+                    col=col,
+                    char=char,
+                    lines=lines,
+                )
             )
-            opacity *= effect.opacity(
-                t,
-                row=row,
-                col=col,
-                char=char,
-                lines=lines,
+            opacity_values.append(
+                effect.opacity(
+                    t,
+                    row=row,
+                    col=col,
+                    char=char,
+                    lines=lines,
+                )
             )
             color = effect.colorize(
                 color,
@@ -102,6 +108,28 @@ class Banner:
                 char=char,
                 lines=lines,
             )
+
+        # Apply multiplicative blending but normalize for multiple effects
+        # to prevent over-darkening and pixelation
+        num_effects = len(self._effects)
+
+        # Use weighted blending: when multiple effects are active,
+        # nudge values toward 1.0 to keep details visible
+        opacity = 1.0
+        brightness = 1.0
+
+        for op_val in opacity_values:
+            opacity *= op_val
+
+        for br_val in brightness_values:
+            brightness *= br_val
+
+        if num_effects > 1:
+            # For multiple effects, apply a smoothing factor to prevent excessive darkening
+            # This preserves effect stacking while maintaining visibility
+            factor = 1.0 / (1.0 + (num_effects - 1) * 0.3)
+            opacity = opacity**factor
+            brightness = brightness**factor
 
         opacity = clamp(opacity)
         color = scale_color(color, max(0.0, brightness))

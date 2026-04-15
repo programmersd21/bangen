@@ -16,7 +16,7 @@ from bangen.export.gif import (
 if TYPE_CHECKING:
     from bangen.rendering.banner import Banner
 
-_FONT_SIZE = 28
+_FONT_SIZE = 11
 
 
 def export_png(path: Path, banner: "Banner") -> None:

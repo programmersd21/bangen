@@ -19,6 +19,7 @@ from bangen.effects import AVAILABLE_EFFECTS, EFFECT_TIERS, EffectConfig, build_
 from bangen.gradients.gradient import Gradient
 from bangen.presets.manager import Preset, PresetManager
 from bangen.rendering.engine import PRESET_FONTS, RenderEngine
+from bangen.rendering.sizing import calculate_auto_size, format_size_info
 from bangen.tui.export_dialog import ExportDialog
 from bangen.tui.preset_dialog import PresetDialog
 
@@ -50,6 +51,8 @@ class TUIState:
     running: bool = True
     status: str = ""
     t: float = 0.0
+    show_size_info: bool = False
+    size_info: str = ""
 
 
 class TUIApp:
@@ -194,6 +197,13 @@ class TUIApp:
                 self.active_modal = PresetDialog(self._pm, on_load=self.load_preset)
             except Exception as exc:
                 state.status = f"Preset loader unavailable: {exc}"
+        elif key in ("a", "A"):
+            # Toggle auto-size info display
+            state.show_size_info = not state.show_size_info
+            if state.show_size_info:
+                state.status = "Auto-size info: ON"
+            else:
+                state.status = "Auto-size info: OFF"
         elif key in ("q", "Q", "\x03", "\x04"):
             state.running = False
         elif key in ("s", "S"):
@@ -215,6 +225,14 @@ class TUIApp:
             state.edit_buffer = ""
         elif key in ("\x7f", "\x08"):
             state.edit_buffer = state.edit_buffer[:-1]
+        elif key == "\x16":  # Ctrl+V for paste
+            try:
+                import pyperclip
+
+                clipboard_text = pyperclip.paste()
+                state.edit_buffer += clipboard_text
+            except Exception:
+                pass  # Silently ignore if pyperclip not available
         elif key.isprintable():
             state.edit_buffer += key
 
@@ -378,9 +396,15 @@ class TUIApp:
         if state.status:
             table.add_row(Text(""), Text(state.status, style="yellow"))
 
+        if state.show_size_info and state.size_info:
+            table.add_row(Text(""), Text(state.size_info, style="cyan"))
+
         table.add_row(Text(""), Text(""))
         table.add_row(
-            Text(" [l] load preset  [e] export  [s] save preset", style="dim"),
+            Text(
+                " [l] load preset  [a] size info  [e] export  [s] save preset",
+                style="dim",
+            ),
             Text(""),
         )
         return table
@@ -407,6 +431,13 @@ class TUIApp:
         try:
             banner = self._compose_banner()
             self.banner = banner
+            # Calculate size info if show_size_info is enabled
+            if self._state.show_size_info:
+                try:
+                    size_config = calculate_auto_size(banner)
+                    self._state.size_info = format_size_info(size_config, banner)
+                except Exception:
+                    self._state.size_info = ""
             return banner.render_frame(self._state.t)
         except Exception as exc:
             self.banner = None
@@ -447,6 +478,7 @@ class TUIApp:
             ("←→", "adjust"),
             ("Enter", "edit/toggle"),
             ("l", "load presets"),
+            ("a", "size info"),
             ("e", "export"),
             ("q", "quit"),
         ]

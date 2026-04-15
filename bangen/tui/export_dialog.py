@@ -34,6 +34,7 @@ class ExportDialog:
         self.current_field = 0
         self.edit_field: str | None = None
         self.edit_buffer = ""
+        self.edit_cursor = 0
         self.loading = False
         self.closed = False
         self.status_message = ""
@@ -267,6 +268,7 @@ class ExportDialog:
         if field_id in {"path", "duration", "fps"}:
             self.edit_field = field_id
             self.edit_buffer = self._editable_value(field_id)
+            self.edit_cursor = len(self.edit_buffer)
             self.confirm_overwrite = False
             return
 
@@ -284,18 +286,69 @@ class ExportDialog:
         if key == "\x1b":
             self.edit_field = None
             self.edit_buffer = ""
+            self.edit_cursor = 0
             return
 
-        if key in ("\x08", "\x7f"):
-            self.edit_buffer = self.edit_buffer[:-1]
+        # Arrow key handling for cursor movement
+        if key == "\x1b[D":  # Left arrow
+            self.edit_cursor = max(0, self.edit_cursor - 1)
+            return
+
+        if key == "\x1b[C":  # Right arrow
+            self.edit_cursor = min(len(self.edit_buffer), self.edit_cursor + 1)
+            return
+
+        if key in ("\x08", "\x7f"):  # Backspace
+            if self.edit_cursor > 0:
+                self.edit_buffer = (
+                    self.edit_buffer[: self.edit_cursor - 1]
+                    + self.edit_buffer[self.edit_cursor :]
+                )
+                self.edit_cursor -= 1
+            return
+
+        if key == "\x16":  # Ctrl+V for paste
+            try:
+                import pyperclip
+
+                clipboard_text = pyperclip.paste()
+                if self.edit_field == "path":
+                    self.edit_buffer = (
+                        self.edit_buffer[: self.edit_cursor]
+                        + clipboard_text
+                        + self.edit_buffer[self.edit_cursor :]
+                    )
+                    self.edit_cursor += len(clipboard_text)
+                else:
+                    filtered = "".join(
+                        c for c in clipboard_text if c.isdigit() or c == "."
+                    )
+                    self.edit_buffer = (
+                        self.edit_buffer[: self.edit_cursor]
+                        + filtered
+                        + self.edit_buffer[self.edit_cursor :]
+                    )
+                    self.edit_cursor += len(filtered)
+            except Exception:
+                pass  # Silently ignore if pyperclip not available
             return
 
         if key.isprintable():
             if self.edit_field == "path":
-                self.edit_buffer += key
+                self.edit_buffer = (
+                    self.edit_buffer[: self.edit_cursor]
+                    + key
+                    + self.edit_buffer[self.edit_cursor :]
+                )
+                self.edit_cursor += 1
                 return
             if key.isdigit() or key == ".":
-                self.edit_buffer += key
+                self.edit_buffer = (
+                    self.edit_buffer[: self.edit_cursor]
+                    + key
+                    + self.edit_buffer[self.edit_cursor :]
+                )
+                self.edit_cursor += 1
 
     def _commit_edit(self) -> None:
         field_id = self.edit_field
@@ -361,7 +414,13 @@ class ExportDialog:
         editing = self.edit_field == field_id
         selected = self._current_field_id() == field_id and self.edit_field is None
 
-        display = f"{self.edit_buffer}█" if editing else value
+        if editing:
+            # Show cursor position in edit buffer
+            before_cursor = self.edit_buffer[: self.edit_cursor]
+            after_cursor = self.edit_buffer[self.edit_cursor :]
+            display = f"{before_cursor}█{after_cursor}"
+        else:
+            display = value
         style = "bold black on cyan" if (selected or editing) else "white"
 
         text = Text()

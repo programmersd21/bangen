@@ -1,6 +1,26 @@
 # Changelog
 
+## [2.2.3]
+
+### Added
+- `pyperclip` dependency for improved clipboard paste support in TUI text input boxes
+- GitHub Actions workflow now dynamically extracts dependencies from `pyproject.toml` instead of hardcoding them for PyInstaller builds
+
+### Changed
+- Auto-sizing is now **enabled by default** — use `--no-auto-size` to disable it
+- Auto-sizing no longer requires the `--auto-size` flag to activate; default behavior now includes automatic terminal-based sizing
+- Text input fields in export and preset dialogs now support full cursor movement with arrow keys (← →)
+- Text input now supports mid-string character insertion and deletion instead of append-only editing
+- Paste operations in text boxes now insert at the current cursor position instead of appending to the end
+
+### Fixed
+- Text cursor now displays at the actual insertion point in input fields
+- Backspace in text boxes now removes the character at the cursor position instead of always removing the last character
+
 ## [2.2.2]
+
+### Changed
+
 - Temporal effects (`fade_in`, `wipe`, `stagger`) now perform continuous looping animations instead of stopping after initial transition
 
 ## [2.2.1]

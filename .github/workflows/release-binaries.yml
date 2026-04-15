@@ -65,6 +65,37 @@ jobs:
         run: |
           printf 'from bangen.app import main\nif __name__=="__main__": main()\n' > _entry.py
 
+          # Extract dependencies from pyproject.toml and generate --collect-all flags
+          COLLECT_ALL_FLAGS=$(python3 - <<'PYTHON_SCRIPT'
+          import tomllib
+          
+          # Package name to module name mapping
+          pkg_to_module = {
+              "Pillow": "PIL",
+              "pyfiglet": "pyfiglet",
+              "pyperclip": "pyperclip",
+              "rich": "rich",
+              "typer": "typer",
+          }
+          
+          with open("pyproject.toml", "rb") as f:
+              config = tomllib.load(f)
+              deps = config["project"]["dependencies"]
+          
+          # Extract package names and convert to module names
+          modules = ["bangen"]  # Always include bangen
+          for dep in deps:
+              # Handle dependencies like "pyfiglet>=1.0" -> extract "pyfiglet"
+              pkg_name = dep.split(">=")[0].split("==")[0].split("<=")[0].split("<")[0].split(">")[0]
+              module_name = pkg_to_module.get(pkg_name, pkg_name)
+              modules.append(module_name)
+          
+          # Generate --collect-all flags
+          flags = " ".join([f"--collect-all {m}" for m in modules])
+          print(flags)
+          PYTHON_SCRIPT
+          )
+
           docker run --rm \
             -u $(id -u):$(id -g) \
             -e HOME=/tmp \
@@ -72,25 +103,22 @@ jobs:
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
             ghcr.io/yt-dlp/manylinux2014_x86_64-shared \
-            bash -c '
+            bash -c "
               set -euo pipefail
               py3.13 -m pip install -U pip wheel pyinstaller --no-cache-dir
-              py3.13 -m pip install ".[all]" --no-cache-dir
+              py3.13 -m pip install \".[all]\" --no-cache-dir
 
               py3.13 -m PyInstaller --onefile --noconfirm --strip --noupx \
                 --name bangen \
                 --distpath dist \
                 --workpath build \
-                --collect-all bangen \
-                --collect-all pyfiglet \
-                --collect-all rich \
-                --collect-all PIL \
-                --collect-all typer \
+                $COLLECT_ALL_FLAGS \
                 --optimize 2 \
                 _entry.py
 
               strings dist/bangen | grep GLIBC_ | sort -V | uniq
-            '
+            "
+          
 
       - run: |
           mkdir -p release
@@ -135,7 +163,39 @@ jobs:
         shell: bash
         run: |
           printf 'from bangen.app import main\nif __name__=="__main__": main()\n' > _entry.py
-          python -m PyInstaller --onefile --noconfirm --noupx --name bangen --distpath dist --workpath build --optimize 2 _entry.py
+          
+          # Extract dependencies from pyproject.toml and generate --collect-all flags
+          COLLECT_ALL_FLAGS=$(python3 - <<'PYTHON_SCRIPT'
+          import tomllib
+          
+          # Package name to module name mapping
+          pkg_to_module = {
+              "Pillow": "PIL",
+              "pyfiglet": "pyfiglet",
+              "pyperclip": "pyperclip",
+              "rich": "rich",
+              "typer": "typer",
+          }
+          
+          with open("pyproject.toml", "rb") as f:
+              config = tomllib.load(f)
+              deps = config["project"]["dependencies"]
+          
+          # Extract package names and convert to module names
+          modules = ["bangen"]  # Always include bangen
+          for dep in deps:
+              # Handle dependencies like "pyfiglet>=1.0" -> extract "pyfiglet"
+              pkg_name = dep.split(">=")[0].split("==")[0].split("<=")[0].split("<")[0].split(">")[0]
+              module_name = pkg_to_module.get(pkg_name, pkg_name)
+              modules.append(module_name)
+          
+          # Generate --collect-all flags
+          flags = " ".join([f"--collect-all {m}" for m in modules])
+          print(flags)
+          PYTHON_SCRIPT
+          )
+          
+          python -m PyInstaller --onefile --noconfirm --noupx --name bangen --distpath dist --workpath build $COLLECT_ALL_FLAGS --optimize 2 _entry.py
 
       - name: Package
         shell: bash

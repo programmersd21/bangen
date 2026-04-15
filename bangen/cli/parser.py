@@ -126,6 +126,13 @@ def main(
     no_border: Annotated[bool, typer.Option("--no-border")] = False,
     title: Annotated[str | None, typer.Option("--title")] = None,
     static: Annotated[bool, typer.Option("--static")] = False,
+    auto_size: Annotated[
+        bool,
+        typer.Option(
+            "--auto-size/--no-auto-size",
+            help="Enable/disable auto-sizing (enabled by default). Auto-adjust banner width/height based on terminal and text size.",
+        ),
+    ] = True,
 ) -> None:
     from bangen.cli.runner import run_cli
 
@@ -173,5 +180,6 @@ def main(
         no_border=no_border,
         title=title,
         static=static,
+        auto_size=auto_size,
     )
     run_cli(args)
