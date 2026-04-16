@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import sys
 import time
+import webbrowser
+import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -11,6 +13,7 @@ from rich import box
 from rich.console import Console
 from rich.layout import Layout
 from rich.live import Live
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -53,6 +56,9 @@ class TUIState:
     t: float = 0.0
     show_size_info: bool = False
     size_info: str = ""
+    show_changelog: bool = False
+    changelog_content: str = ""
+    changelog_scroll_pos: int = 0
 
 
 class TUIApp:
@@ -177,6 +183,15 @@ class TUIApp:
     def _handle_nav(self, key: str) -> None:
         state = self._state
 
+        if state.show_changelog:
+            if key == "\x1b[A":  # Up
+                state.changelog_scroll_pos = max(0, state.changelog_scroll_pos - 1)
+            elif key == "\x1b[B":  # Down
+                state.changelog_scroll_pos += 1
+            elif key in ("c", "C"):
+                state.show_changelog = False
+            return
+
         if key == "\x1b[A":
             state.current_field = (state.current_field - 1) % _NUM_FIELDS
         elif key == "\x1b[B":
@@ -187,6 +202,23 @@ class TUIApp:
             self._nudge(+1)
         elif key == "\x1b[D":
             self._nudge(-1)
+        elif key in ("c", "C"):
+            if not state.changelog_content:
+                try:
+                    with urllib.request.urlopen("https://raw.githubusercontent.com/programmersd21/bangen/refs/heads/main/CHANGELOG.md") as response:
+                        content = response.read().decode("utf-8")
+                        lines = content.splitlines()
+                        if lines and lines[0].strip() == "# Changelog":
+                            content = "\n".join(lines[1:]).strip()
+                        state.changelog_content = content
+                        state.changelog_scroll_pos = 0
+                except Exception as exc:
+                    state.status = f"Changelog error: {exc}"
+            if state.changelog_content:
+                state.show_changelog = not state.show_changelog
+        elif key in ("i", "I"):
+            webbrowser.open("https://github.com/programmersd21/bangen/issues/new")
+            state.status = "Opened issues page in browser"
         elif key in ("e", "E"):
             try:
                 self.open_export_dialog()
@@ -198,7 +230,6 @@ class TUIApp:
             except Exception as exc:
                 state.status = f"Preset loader unavailable: {exc}"
         elif key in ("a", "A"):
-            # Toggle auto-size info display
             state.show_size_info = not state.show_size_info
             if state.show_size_info:
                 state.status = "Auto-size info: ON"
@@ -293,7 +324,17 @@ class TUIApp:
     def _build_layout(self):
         if self.active_modal is not None:
             return self.active_modal.render()
+        if self._state.show_changelog:
+            lines = self._state.changelog_content.splitlines()
+            display_lines = lines[self._state.changelog_scroll_pos:]
+            return Panel(
+                Markdown("\n".join(display_lines)),
+                title="[bold cyan]Changelog[/bold cyan]",
+                subtitle="[dim]↑↓ to scroll, 'c' to close[/dim]",
+                box=box.ROUNDED,
+            )
         return self._build_main_layout()
+
 
     def _build_main_layout(self) -> Layout:
         layout = Layout()
@@ -477,6 +518,8 @@ class TUIApp:
             ("↑↓", "navigate"),
             ("←→", "adjust"),
             ("Enter", "edit/toggle"),
+            ("c", "changelog"),
+            ("i", "report issue"),
             ("l", "load presets"),
             ("a", "size info"),
             ("e", "export"),

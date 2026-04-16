@@ -125,6 +125,8 @@ Controls:
 - `←→` adjust font or numeric settings
 - `Enter` edit or toggle the selected field
 - `Ctrl+V` paste from clipboard (in text input fields)
+- `c` toggle changelog view
+- `i` report an issue
 - `a` toggle auto-size info display (shows terminal-relative sizing)
 - `l` load a saved preset or load from a custom preset file
 - `e` open the export dialog
