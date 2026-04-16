@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import sys
 import time
-import webbrowser
 import urllib.request
+import webbrowser
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -205,7 +205,9 @@ class TUIApp:
         elif key in ("c", "C"):
             if not state.changelog_content:
                 try:
-                    with urllib.request.urlopen("https://raw.githubusercontent.com/programmersd21/bangen/refs/heads/main/CHANGELOG.md") as response:
+                    with urllib.request.urlopen(
+                        "https://raw.githubusercontent.com/programmersd21/bangen/refs/heads/main/CHANGELOG.md"
+                    ) as response:
                         content = response.read().decode("utf-8")
                         lines = content.splitlines()
                         if lines and lines[0].strip() == "# Changelog":
@@ -326,7 +328,7 @@ class TUIApp:
             return self.active_modal.render()
         if self._state.show_changelog:
             lines = self._state.changelog_content.splitlines()
-            display_lines = lines[self._state.changelog_scroll_pos:]
+            display_lines = lines[self._state.changelog_scroll_pos :]
             return Panel(
                 Markdown("\n".join(display_lines)),
                 title="[bold cyan]Changelog[/bold cyan]",
@@ -334,7 +336,6 @@ class TUIApp:
                 box=box.ROUNDED,
             )
         return self._build_main_layout()
-
 
     def _build_main_layout(self) -> Layout:
         layout = Layout()
