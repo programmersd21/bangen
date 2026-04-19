@@ -154,6 +154,11 @@ Press `e` inside the TUI to open the exporter.
 
 The CLI is powered by `Typer`, so `bangen --help` now presents a cleaner option list and examples while keeping the same flag-based workflow.
 
+#### Find out your version of `bangen`
+```
+bangen --version
+```
+
 #### Basic Rendering
 
 ```bash
