@@ -204,4 +204,3 @@ def main(
         auto_size=auto_size,
     )
     run_cli(args)
-    
