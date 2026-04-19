@@ -6,9 +6,8 @@ from types import SimpleNamespace
 from typing import Annotated
 
 import typer
-import typer.rich_utils as typer_rich_utils
 
-setattr(typer_rich_utils, "RICH_HELP", True)
+VERSION = "0.2.5"
 
 app = typer.Typer(
     add_completion=False,
@@ -32,6 +31,28 @@ app = typer.Typer(
         "  bangen --list-fonts"
     ),
 )
+
+
+def version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"bangen {VERSION}")
+        raise typer.Exit()
+
+
+@app.callback()
+def app_callback(
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            "-v",
+            help="Show version and exit",
+            is_eager=True,
+            callback=version_callback,
+        ),
+    ] = False,
+) -> None:
+    pass
 
 
 def has_cli_args(argv: list[str] | None = None) -> bool:
@@ -183,3 +204,4 @@ def main(
         auto_size=auto_size,
     )
     run_cli(args)
+    
