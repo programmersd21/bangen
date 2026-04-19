@@ -7,7 +7,7 @@ from typing import Annotated
 
 import typer
 
-VERSION = "0.2.5"
+VERSION = "2.2.5"
 
 app = typer.Typer(
     add_completion=False,
